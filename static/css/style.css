@@ -1,70 +1,121 @@
-body {
+/* General reset */
+* {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f0f4f8;
-  color: #333;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Georgia, serif;
+  background-color: #f8f6f2;
+  color: #000;
+}
+
+/* Fade-in animation */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 1.5s ease forwards;
+}
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Navbar */
+.navbar {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  height: 100vh;
+  padding: 15px 50px;
+  border-bottom: 1px solid #000;
+  background-color: #f8f6f2;
 }
 
-.container {
-  text-align: center;
-  background: white;
-  padding: 40px 60px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  max-width: 400px;
-  width: 90%;
-}
-
-h1 {
-  margin-bottom: 10px;
-  font-size: 2.8rem;
-  color: #007BFF;
-}
-
-p {
-  margin-bottom: 30px;
-  font-size: 1.1rem;
-  color: #555;
-}
-
-.buttons {
+.logo-container {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 28px;
+  height: 28px;
+}
+
+.logo-text {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
   gap: 20px;
 }
 
-.btn {
-  padding: 12px 30px;
-  border-radius: 30px;
+.nav-links a {
   text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-  cursor: pointer;
-  border: none;
+  color: #000;
+  font-size: 0.9rem;
+}
+
+.btn-get-started {
+  background-color: #000;
+  color: #fff; /* White text */
+  font-family: inherit; /* Same font as the rest */
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.btn-get-started:hover {
+  background-color: #fff; /* Invert background */
+  color: #000; /* Invert text color */
+  border: 1px solid #000; /* Keep the shape clear */
+}
+
+
+/* Main landing content */
+.landing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  padding: 50px;
+}
+
+.image-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.bird-image {
+  max-width: 600px; /* Bigger image */
+  height: auto;
+}
+
+.text-section {
+  flex: 1;
+  font-size: 1.8rem; /* Bigger text */
+  line-height: 1.6;
+  white-space: pre-line;
+  position: relative;
+}
+
+/* Blinking cursor */
+#cursor {
   display: inline-block;
+  font-weight: bold;
+  font-size: 1.8rem;
+  animation: blink 0.7s step-start infinite;
 }
 
-.btn-login {
-  background-color: transparent;
-  color: #007BFF;
-  border: 2px solid #007BFF;
-}
-
-.btn-login:hover {
-  background-color: #007BFF;
-  color: white;
-}
-
-.btn-started {
-  background-color: #007BFF;
-  color: white;
-}
-
-.btn-started:hover {
-  background-color: #0056b3;
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }

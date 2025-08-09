@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pick Gender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        h2 { color: #333; }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            color: white;
+        }
+        .male { background-color: #3498db; }
+        .female { background-color: #e91e63; }
+    </style>
+</head>
+<body>
+    <h2>Select Your Gender</h2>
+    <form method="POST">
+        <button type="submit" name="gender" value="Male" class="btn male">Male</button>
+        <button type="submit" name="gender" value="Female" class="btn female">Female</button>
+    </form>
+</body>
+</html>

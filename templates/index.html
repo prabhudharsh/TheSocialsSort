@@ -3,17 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TheSocialSort - Landing</title>
+  <title>The Social Sort - Landing</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
-  <div class="container">
-    <h1>TheSocialSort</h1>
-    <p>Welcome to TheSocialSort — your social experience starts here.</p>
-    <div class="buttons">
-      <a href="{{ url_for('login') }}" class="btn btn-login">Login</a>
-      <a href="{{ url_for('signup') }}" class="btn btn-started">Get Started</a>
+  <!-- Navbar -->
+  <header class="navbar fade-in">
+    <div class="logo-container">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="The Social Sort Logo" class="logo" />
+      <span class="logo-text">The Social Sort</span>
     </div>
-  </div>
+    <nav class="nav-links">
+      <a href="#">About us</a>
+      <a href="#">Website Goal</a>
+      <a href="{{ url_for('login') }}">Sign in</a>
+      <a href="{{ url_for('signup') }}" class="btn-get-started">Get Started</a>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="landing-container fade-in">
+    <div class="image-section fade-in">
+      <img src="{{ url_for('static', filename='images/bird.png') }}" alt="Bird in cage" class="bird-image" />
+    </div>
+    <div class="text-section">
+      <span id="typing-text"></span><span id="cursor">|</span>
+    </div>
+  </main>
+
+  <script>
+    const text = `We are a constellation,
+each name a star seen in a
+different light. Some shine for
+their brilliance, others for their
+warmth.
+This is a place to see the patterns
+we form and the lines that are
+drawn between us.`;
+
+    let index = 0;
+    const speed = 10; // Faster typing speed
+
+    function typeEffect() {
+      if (index < text.length) {
+        document.getElementById("typing-text").innerHTML += text.charAt(index);
+        index++;
+        setTimeout(typeEffect, speed);
+      }
+    }
+
+    window.onload = typeEffect;
+  </script>
 </body>
 </html>

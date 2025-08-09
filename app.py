@@ -21,8 +21,9 @@ def get_db_connection():
 def send_otp_via_email(user_email, otp_code):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    sender_email = "prabhudharsh12@gmail.com"  # Replace with your Gmail
-    sender_password = "qzwy xpuz xsgg bxgi"  # Replace with your App Password
+    sender_email = os.getenv('SENDER_EMAIL')
+    sender_password = os.getenv('SENDER_PASSWORD')
+
 
     subject = "Your OTP Code"
     body = f"Your OTP code is: {otp_code}"
@@ -41,7 +42,7 @@ def send_otp_via_email(user_email, otp_code):
 
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return redirect(url_for('landing'))
 
 @app.route('/landing')
 def landing():
@@ -125,17 +126,92 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('dashboard.html', username=session['username'])
-
 @app.route('/logout')
 def logout():
     session.clear()
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    username = session['username']
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT username, name, bio FROM users WHERE username = %s", (username,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return render_template('dashboard.html', username=user['username'])
+
+@app.route('/complete_profile', methods=['GET', 'POST'])
+def complete_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        bio = request.form['bio']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET name = %s, bio = %s WHERE id = %s",
+            (name, bio, session['user_id'])
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('Profile updated! Please pick your gender.', 'info')
+        return redirect(url_for('pick_gender'))
+
+    return render_template('complete_profile.html')
+
+@app.route('/pick_gender', methods=['GET', 'POST'])
+def pick_gender():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        gender = request.form['gender']  # Male or Female
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET gender = %s WHERE id = %s",
+            (gender, session['user_id'])
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('Gender saved successfully!', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('pick_gender.html')
+
+@app.route('/profile/<username>')
+def profile(username):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT username, name, bio FROM users WHERE username = %s", (username,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    return render_template('profile.html', user=user)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
