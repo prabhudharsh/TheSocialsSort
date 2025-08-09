@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TheSocialSort - Landing</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>TheSocialSort</h1>
+    <p>Welcome to TheSocialSort — your social experience starts here.</p>
+    <div class="buttons">
+      <a href="{{ url_for('login') }}" class="btn btn-login">Login</a>
+      <a href="{{ url_for('signup') }}" class="btn btn-started">Get Started</a>
+    </div>
+  </div>
+</body>
+</html>
