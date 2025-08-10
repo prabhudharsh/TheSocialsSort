@@ -17,7 +17,7 @@
       <a href="#">About us</a>
       <a href="#">Website Goal</a>
       <a href="{{ url_for('login') }}">Sign in</a>
-      <a href="{{ url_for('signup') }}" class="btn-get-started">Get Started</a>
+      <a href="#" id="openSignupModal" class="btn-get-started">Get Started</a>
     </nav>
   </header>
 
@@ -31,6 +31,36 @@
     </div>
   </main>
 
+  <!-- Signup Modal -->
+  <div id="signupModal" class="modal">
+    <div class="modal-content slide-up">
+      <span class="close" id="closeModal">&times;</span>
+      <h2>Create an Account</h2>
+      <form>
+        <div class="input-group">
+          <img src="{{ url_for('static', filename='images/email.png') }}" alt="Email Icon" class="input-icon">
+          <input type="email" placeholder="email@gmail.com" required />
+        </div>
+        <div class="input-group">
+          <img src="{{ url_for('static', filename='images/password.png') }}" alt="Password Icon" class="input-icon">
+          <input type="password" placeholder="Enter your password" id="passwordInput" required />
+          <img src="{{ url_for('static', filename='images/eye.png') }}" alt="Toggle Password" class="toggle-password" id="togglePassword">
+        </div>
+        <div class="input-group">
+          <input type="text" placeholder="Enter OTP" />
+        </div>
+        <button type="submit">Sign up</button>
+      </form>
+      <p class="switch-auth">
+        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+      </p>
+      <small>
+        Click "Sign up" to agree to The Social Sort’s Terms of Service and acknowledge that it applies to you.
+      </small>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
   <script>
     const text = `We are a constellation,
 each name a star seen in a
@@ -42,7 +72,7 @@ we form and the lines that are
 drawn between us.`;
 
     let index = 0;
-    const speed = 10; // Faster typing speed
+    const speed = 10;
 
     function typeEffect() {
       if (index < text.length) {

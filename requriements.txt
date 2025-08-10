@@ -1,4 +1,9 @@
 flask
-flask-mysqldb
-flask-bcrypt
+flask-mysql-connector
+mysql-connector-python
+flask-session
 python-dotenv
+flask-wtf
+email-validator
+gunicorn
+pillow

@@ -1,7 +1,7 @@
 import os
 import random
 import mysql.connector
-from flask import Flask, render_template, request, redirect, session, flash, url_for
+from flask import Flask, render_template, request, redirect, session, flash, url_for, jsonify
 from dotenv import load_dotenv
 import smtplib
 
