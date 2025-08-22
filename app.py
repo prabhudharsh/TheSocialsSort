@@ -67,7 +67,9 @@ def signup():
         flash("OTP sent to your email. Please verify.", "info")
         return redirect(url_for('verify_otp'))
 
-    return render_template('signup.html')
+    # Instead of rendering signup.html, render dashboard.html
+    return render_template('dashboard.html', username=session.get('username', 'Guest'))
+
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
