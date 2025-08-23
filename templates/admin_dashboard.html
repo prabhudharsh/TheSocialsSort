@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    table { border-collapse: collapse; width: 80%; margin: auto; }
+    th, td { border: 1px solid #333; padding: 10px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    button, input { padding: 8px 12px; margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+
+  <h2>Users List</h2>
+  <table>
+    <tr>
+      <th>Username</th>
+      <th>Full Name</th>
+      <th>Email</th>
+      <th>Gender</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+      <td>{{ user['username'] }}</td>
+      <td>{{ user['full_name'] or 'N/A' }}</td>
+      <td>{{ user['email'] }}</td>
+      <td>{{ user['gender'] or 'N/A' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2>Voting Controls</h2>
+  <input type="datetime-local" id="votingTime" value="{{ voting_start.strftime('%Y-%m-%dT%H:%M') }}">
+  <button onclick="updateVotingTime()">Set Voting Time</button>
+  <button onclick="forceStart()">Force Start Voting</button>
+
+  <script>
+    async function updateVotingTime() {
+      const newTime = document.getElementById('votingTime').value + ":00";
+      const res = await fetch('/admin_dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({new_time: newTime})
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    async function forceStart() {
+      const res = await fetch('/admin_dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({force_start: true})
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    button {
+      padding: 15px 30px;
+      font-size: 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid #333;
+      background-color: #f0f0f0;
+      transition: background-color 0.2s;
+      margin: 10px;
+    }
+    button:hover { background-color: #ddd; }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <p>Sample paragraph</p>
+
+  <button id="countdownBtn" disabled>
+    Voting starts in <span id="timer">{{ time_left }}</span> seconds
+  </button>
+
+  <br>
+  <button id="profileBtn" onclick="window.location.href='/profile'">Profile</button>
+
+  <script>
+    let timeLeft = {{ time_left }};
+    const forceStart = {{ force_start|default(False)|lower }};
+    const timerSpan = document.getElementById('timer');
+    const countdownBtn = document.getElementById('countdownBtn');
+
+    if (forceStart) timeLeft = 0;
+
+    const countdown = setInterval(() => {
+      if (timeLeft > 0) {
+        timeLeft--;
+        timerSpan.textContent = timeLeft;
+      } else {
+        clearInterval(countdown);
+        countdownBtn.textContent = "Start Voting";
+        countdownBtn.disabled = false;
+      }
+    }, 1000);
+
+    countdownBtn.onclick = () => {
+      window.location.href = "/category";
+    };
+  </script>
+</body>
+</html>

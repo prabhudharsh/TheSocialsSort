@@ -9,10 +9,24 @@ from dotenv import load_dotenv
 import smtplib
 from email.message import EmailMessage
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta
 
 load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+
+# Global voting control
+VOTING_START = datetime.now() + timedelta(minutes=1)
+FORCE_START = False
+
+# Voting categories - easily changeable
+CATEGORIES = [
+    "Smartest in class",
+    "Can be found napping in class",
+    "Handsome/Beautiful",
+    "Annoying"
+]
 
 # -----------------------
 # Config & constants
@@ -69,6 +83,7 @@ def send_otp_via_email(user_email, otp_code):
     except Exception as e:
         print("Error sending email:", e)
         raise e
+
 
 # -----------------------
 # Landing page
@@ -237,6 +252,65 @@ def verify_otp_ajax():
     return jsonify({'status': 'success', 'message': 'Signup successful! Redirecting to dashboard...'})
 
 
+# -----------------------
+# Admin Login Page
+# -----------------------
+from flask import redirect, url_for
+
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        admin_username = os.getenv('ADMIN_USERNAME')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+
+        if username == admin_username and password == admin_password:
+            session['admin'] = True
+            return jsonify({'status': 'success', 'redirect': '/admin_dashboard'})
+        else:
+            return jsonify({'status': 'danger', 'message': 'Invalid admin credentials.'})
+
+    # GET request: return HTML form
+    return render_template('admin_login.html')
+
+# -----------------------
+# Admin Dashboard
+# -----------------------
+@app.route('/admin_dashboard', methods=['GET', 'POST'])
+def admin_dashboard():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+
+    global VOTING_START, FORCE_START
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Fetch all users
+    cur.execute("SELECT username, full_name, email, gender FROM users")
+    users = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Handle POST for updating voting time / force skip
+    if request.method == 'POST':
+        data = request.get_json()
+        if 'new_time' in data:
+            # Update countdown to a new datetime
+            VOTING_START = datetime.strptime(data['new_time'], '%Y-%m-%d %H:%M:%S')
+            FORCE_START = False
+            return jsonify({'status': 'success', 'message': 'Voting time updated.'})
+        elif data.get('force_start'):
+            FORCE_START = True
+            return jsonify({'status': 'success', 'message': 'Voting started immediately.'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid action.'})
+
+    return render_template('admin_dashboard.html', users=users, voting_start=VOTING_START)
+
 
 # -----------------------
 # Dashboard
@@ -258,7 +332,14 @@ def dashboard():
     if not user['gender']:
         return redirect(url_for('select_gender'))
 
-    return f"Welcome, {session['username']}!"
+    # Calculate time left for universal countdown
+    now = datetime.now()
+    time_left = int((VOTING_START - now).total_seconds())
+    if time_left < 0:
+        time_left = 0
+
+    # Render dashboard template with universal countdown
+    return render_template('dashboard.html', username=session['username'], time_left=time_left)
 
 # -----------------------
 # Complete Profile
@@ -319,6 +400,65 @@ def select_gender():
 
     # GET request: return HTML template
     return render_template('select_gender.html')
+
+# -----------------------
+# Profile
+# -----------------------
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        return redirect(url_for('landing'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT username, full_name, email, gender FROM users WHERE id = ?", 
+        (session['user_id'],)
+    )
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not user:
+        return "User not found.", 404
+
+    return render_template('profile.html', user=user)
+
+# -----------------------
+# category
+# -----------------------
+
+@app.route('/category')
+def category():
+    if 'username' not in session:
+        return redirect(url_for('landing'))
+
+    return render_template('category.html', categories=CATEGORIES)
+
+# -----------------------
+# Category detail page route
+# -----------------------
+@app.route('/category/<int:cat_id>')
+def category_page(cat_id):
+    if 'username' not in session:
+        return redirect(url_for('landing'))
+
+    # Ensure valid category index
+    if 1 <= cat_id <= len(VOTING_CATEGORIES):
+        category_name = VOTING_CATEGORIES[cat_id - 1]
+        return f"<h1>{category_name}</h1><p>Voting options will go here.</p>"
+    else:
+        return "Invalid category.", 404
+
+# -----------------------
+# Voting Page
+# -----------------------
+@app.route('/voting_page')
+def voting_page():
+    if 'username' not in session:
+        return redirect(url_for('landing'))
+    return "<h1>Welcome to the Voting Page!</h1><p>Voting will happen here.</p>"
+
 
 
 # -----------------------

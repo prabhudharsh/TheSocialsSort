@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    .category-div {
+      display: inline-block;
+      margin: 20px;
+      padding: 20px 30px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      cursor: pointer;
+      background-color: #f0f0f0;
+      transition: background-color 0.2s;
+      font-size: 18px;
+    }
+    .category-div:hover { background-color: #ddd; }
+  </style>
+</head>
+<body>
+  <h1>Categories</h1>
+
+  {% for category in categories %}
+    <div class="category-div" onclick="window.location.href='/category/{{ loop.index }}'">
+      {{ category }}
+    </div>
+  {% endfor %}
+
+  <br><br>
+  <button onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+</body>
+</html>
