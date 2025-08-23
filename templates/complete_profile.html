@@ -1,18 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Complete Your Profile</title>
-</head>
-<body>
-    <h2>Complete Your Profile</h2>
-    <form method="POST">
-        <label>Name:</label><br>
-        <input type="text" name="name" required><br><br>
+<form id="profileForm">
+    <input type="text" name="full_name" placeholder="Full Name" required>
+    <textarea name="bio" placeholder="Your bio..." required></textarea>
+    <button type="submit">Next</button>
+</form>
 
-        <label>Short Bio:</label><br>
-        <textarea name="bio" rows="4"></textarea><br><br>
+<script>
+document.getElementById('profileForm').onsubmit = async e => {
+    e.preventDefault();
+    const full_name = e.target.full_name.value;
+    const bio = e.target.bio.value;
 
-        <button type="submit">Save</button>
-    </form>
-</body>
-</html>
+    const res = await fetch('/complete_profile', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({full_name, bio})
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.href = data.redirect;
+    else alert(data.message);
+};
+</script>

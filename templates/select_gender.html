@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .gender-btn {
+      display: inline-block;
+      padding: 20px 40px;
+      margin: 20px;
+      font-size: 20px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid #333;
+      border-radius: 10px;
+      transition: background-color 0.2s, color 0.2s;
+      user-select: none;
+    }
+    .gender-btn:hover {
+      background-color: #333;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h2>Select Your Gender</h2>
+  <div id="male" class="gender-btn">Male</div>
+  <div id="female" class="gender-btn">Female</div>
+
+  <script>
+    async function selectGender(gender) {
+      const res = await fetch('/select_gender', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({gender})
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        window.location.href = data.redirect;
+      } else {
+        alert(data.message);
+      }
+    }
+
+    document.getElementById('male').onclick = () => selectGender('male');
+    document.getElementById('female').onclick = () => selectGender('female');
+  </script>
+</body>
+</html>

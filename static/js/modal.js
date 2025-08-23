@@ -1,53 +1,115 @@
-const signupModal = document.getElementById("signupModal");
-const closeModal = document.getElementById("closeModal");
-const signupButton = document.getElementById("openSignupModal");
-const togglePassword = document.getElementById("togglePassword");
-const passwordInput = document.getElementById("passwordInput");
+// ===============================
+// MODAL TOGGLING (mutually exclusive)
+// ===============================
+const loginBtn = document.getElementById('login-btn');
+const signupBtn = document.getElementById('signup-btn');
+const loginModal = document.getElementById('login-modal');
+const signupModal = document.getElementById('signup-modal');
+const otpModal = document.getElementById('otp-modal');
 
-// Handle modal open/close if they exist
-if (signupButton && signupModal) {
-  signupButton.addEventListener("click", function (e) {
+const closeLogin = document.getElementById('close-login');
+const closeSignup = document.getElementById('close-signup');
+const closeOtp = document.getElementById('close-otp');
+
+function openModal(modal) {
+    // Close all modals first
+    loginModal.style.display = 'none';
+    signupModal.style.display = 'none';
+    otpModal.style.display = 'none';
+    // Open the desired modal
+    modal.style.display = 'block';
+}
+
+// Open modals mutually exclusive
+loginBtn.onclick = () => openModal(loginModal);
+signupBtn.onclick = () => openModal(signupModal);
+
+closeLogin.onclick = () => { loginModal.style.display = 'none'; document.getElementById('login-message').innerHTML=''; }
+closeSignup.onclick = () => { signupModal.style.display = 'none'; document.getElementById('signup-message').innerHTML=''; }
+closeOtp.onclick = () => { otpModal.style.display = 'none'; document.getElementById('otp-message').innerHTML=''; }
+
+// ===============================
+// LOGIN AJAX
+// ===============================
+const loginForm = document.getElementById('login-form');
+loginForm.onsubmit = async function(e) {
     e.preventDefault();
-    signupModal.style.display = "flex";
-    const modalContent = signupModal.querySelector(".modal-content");
-    modalContent.classList.remove("slide-up");
-    void modalContent.offsetWidth; // restart animation
-    modalContent.classList.add("slide-up");
-  });
-}
+    const formData = new FormData(this);
+    const data = { username: formData.get('username'), password: formData.get('password') };
 
-if (closeModal && signupModal) {
-  closeModal.addEventListener("click", function () {
-    signupModal.style.display = "none";
-  });
-}
+    const response = await fetch('/login_ajax', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    });
 
-window.addEventListener("click", function (e) {
-  if (signupModal && e.target === signupModal) {
-    signupModal.style.display = "none";
-  }
-});
-
-if (togglePassword && passwordInput) {
-  togglePassword.addEventListener("click", function () {
-    const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-    passwordInput.setAttribute("type", type);
-  });
-}
-
-// === OTP / Signup flow ===
-const signupForm = document.getElementById("signupForm");
-const signupBtn = document.getElementById("signupBtn");
-const otpField = document.getElementById("otpField");
-
-if (signupForm && signupBtn && otpField) {
-  signupForm.addEventListener("submit", function (e) {
-    if (signupBtn.innerText === "Get OTP") {
-      // First submit → show OTP field, change button text
-      otpField.style.display = "block";
-      signupBtn.innerText = "Sign Up";
-      e.preventDefault(); // stop form submission on first click
+    const result = await response.json();
+    document.getElementById('login-message').innerHTML = result.message;
+    if(result.status === 'success'){
+        location.href = "/dashboard";
     }
-    // Second submit actually posts the form
-  });
+}
+
+// ===============================
+// SIGNUP AJAX: check username/email & open OTP modal
+// ===============================
+const signupForm = document.getElementById('signup-form');
+signupForm.onsubmit = async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        username: formData.get('username'),
+        email: formData.get('email'),
+        password: formData.get('password')
+    };
+
+    const response = await fetch('/signup_ajax', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    document.getElementById('signup-message').innerHTML = result.message;
+
+    if(result.status === 'otp_modal'){
+        signupModal.style.display = 'none';
+        otpModal.style.display = 'block';
+
+        // Send OTP in background after modal opens
+        fetch('/send_otp_ajax', { method:'POST' })
+            .then(resp => resp.json())
+            .then(res => {
+                document.getElementById('otp-message').innerHTML = res.message;
+            });
+    }
+}
+
+// ===============================
+// OTP AJAX
+// ===============================
+const otpForm = document.getElementById('otp-form');
+otpForm.onsubmit = async function(e){
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = { otp: formData.get('otp') };
+
+    const response = await fetch('/verify_otp_ajax', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    document.getElementById('otp-message').innerHTML = result.message;
+
+    if(result.status === 'success'){
+        // Close OTP modal and open login modal
+        setTimeout(() => { 
+            otpModal.style.display = 'none';
+            document.getElementById('otp-message').innerHTML='';
+            openModal(loginModal);
+            document.getElementById('login-message').innerHTML = 'Signup successful! Please login.';
+        }, 1000);
+    }
 }
