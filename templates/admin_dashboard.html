@@ -2,33 +2,84 @@
 <html>
 <head>
   <style>
-    table { border-collapse: collapse; width: 80%; margin: auto; }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    table { border-collapse: collapse; width: 90%; margin: auto; }
     th, td { border: 1px solid #333; padding: 10px; text-align: left; }
     th { background-color: #f2f2f2; }
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    button, input { padding: 8px 12px; margin: 5px; }
+    button, input { padding: 8px 12px; margin: 5px; cursor: pointer; }
+    nav { margin-bottom: 20px; }
+    .tab { display: inline-block; margin-right: 10px; padding: 6px 12px; border: 1px solid #333; border-radius: 4px; cursor: pointer; }
+    .tab.active { background-color: #007BFF; color: white; }
+    .leaderboard { margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
 
-  <h2>Users List</h2>
-  <table>
-    <tr>
-      <th>Username</th>
-      <th>Full Name</th>
-      <th>Email</th>
-      <th>Gender</th>
-    </tr>
-    {% for user in users %}
-    <tr>
-      <td>{{ user['username'] }}</td>
-      <td>{{ user['full_name'] or 'N/A' }}</td>
-      <td>{{ user['email'] }}</td>
-      <td>{{ user['gender'] or 'N/A' }}</td>
-    </tr>
+  <h1>Admin Dashboard</h1>
+  <button onclick="window.location.href='/admin_logout'">Logout</button>
+  <!-- New button for categories management -->
+  <button onclick="window.location.href='/admin_categories'">Manage Categories</button>
+
+  <nav>
+    <div class="tab active" onclick="showTab('users')">Users</div>
+    <div class="tab" onclick="showTab('leaderboard')">Leaderboard</div>
+  </nav>
+
+  <!-- Users Tab -->
+  <div id="usersTab">
+    <h2>Users List</h2>
+    <table>
+      <tr>
+        <th>Username</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Gender</th>
+      </tr>
+      {% for user in users %}
+      <tr>
+        <td>{{ user['username'] }}</td>
+        <td>{{ user['full_name'] or 'N/A' }}</td>
+        <td>{{ user['email'] }}</td>
+        <td>{{ user['gender'] or 'N/A' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <!-- Leaderboard Tab -->
+  <div id="leaderboardTab" style="display:none;">
+    <h2>Leaderboards</h2>
+
+    <div>
+      {% for cat in categories %}
+      <button onclick="showCategory('{{ cat['name'] }}')">{{ cat['name'] }}</button>
+      {% endfor %}
+    </div>
+
+    {% for cat in categories %}
+    <div class="leaderboard" id="cat_{{ cat['name'] }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+      <h3>{{ cat['name'] }}</h3>
+      <table>
+        <tr>
+          <th>Rank</th>
+          <th>Full Name</th>
+          <th>Username</th>
+          <th>Rating</th>
+          <th>Votes</th>
+        </tr>
+        {% for row in leaderboards[cat['name']] %}
+        <tr>
+          <td>{{ row['rank'] }}</td>
+          <td>{{ row['full_name'] or 'N/A' }}</td>
+          <td>{{ row['username'] }}</td>
+          <td>{{ "%.1f"|format(row['rating']) }}</td>
+          <td>{{ row['votes'] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
     {% endfor %}
-  </table>
+  </div>
 
   <h2>Voting Controls</h2>
   <input type="datetime-local" id="votingTime" value="{{ voting_start.strftime('%Y-%m-%dT%H:%M') }}">
@@ -36,6 +87,18 @@
   <button onclick="forceStart()">Force Start Voting</button>
 
   <script>
+    function showTab(tab) {
+      document.getElementById('usersTab').style.display = tab === 'users' ? 'block' : 'none';
+      document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.tab[onclick*="'+tab+'"]').classList.add('active');
+    }
+
+    function showCategory(catName) {
+      document.querySelectorAll('.leaderboard').forEach(d => d.style.display = 'none');
+      document.getElementById('cat_' + catName).style.display = 'block';
+    }
+
     async function updateVotingTime() {
       const newTime = document.getElementById('votingTime').value + ":00";
       const res = await fetch('/admin_dashboard', {
@@ -57,5 +120,6 @@
       alert(data.message);
     }
   </script>
+
 </body>
 </html>

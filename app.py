@@ -17,16 +17,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
 # Global voting control
-VOTING_START = datetime.now() + timedelta(minutes=1)
+VOTING_START = datetime.now() + timedelta(seconds=2)
 FORCE_START = False
 
-# Voting categories - easily changeable
-CATEGORIES = [
-    "Smartest in class",
-    "Can be found napping in class",
-    "Handsome/Beautiful",
-    "Annoying"
-]
 
 # -----------------------
 # Config & constants
@@ -45,6 +38,16 @@ def get_db_connection():
     conn = sqlite3.connect(os.getenv('DB_PATH'))
     conn.row_factory = sqlite3.Row
     return conn
+
+# Voting categories 
+def get_categories():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+    cur.close()
+    conn.close()
+    return categories
 
 # -----------------------
 # Input validation
@@ -239,6 +242,17 @@ def verify_otp_ajax():
             "INSERT INTO users (username, email, password, is_verified) VALUES (?, ?, ?, ?)",
             (pending['username'], pending['email'], password_hash, 1)
         )
+        user_id = cur.lastrowid  # ✅ new user’s ID
+
+        # Initialize Elo ratings for all categories
+        cur.execute("SELECT id FROM categories")
+        categories = cur.fetchall()
+        for category in categories:
+            cur.execute(
+                "INSERT INTO elo_ratings (user_id, category_id, rating) VALUES (?, ?, ?)",
+                (user_id, category['id'], 1200)
+            )
+
         conn.commit()
     except sqlite3.IntegrityError:
         return jsonify({'status': 'error', 'message': 'Username or email already exists.'})
@@ -255,10 +269,12 @@ def verify_otp_ajax():
 # -----------------------
 # Admin Login Page
 # -----------------------
-from flask import redirect, url_for
 
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
+    if session.get('admin'):
+        return redirect(url_for('admin_dashboard'))
+
     if request.method == 'POST':
         data = request.get_json()
         username = data.get('username')
@@ -273,7 +289,6 @@ def admin_login():
         else:
             return jsonify({'status': 'danger', 'message': 'Invalid admin credentials.'})
 
-    # GET request: return HTML form
     return render_template('admin_login.html')
 
 # -----------------------
@@ -289,17 +304,10 @@ def admin_dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Fetch all users
-    cur.execute("SELECT username, full_name, email, gender FROM users")
-    users = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    # Handle POST for updating voting time / force skip
+    # Handle POST for updating voting time / force start
     if request.method == 'POST':
-        data = request.get_json()
+        data = request.get_json() or {}
         if 'new_time' in data:
-            # Update countdown to a new datetime
             VOTING_START = datetime.strptime(data['new_time'], '%Y-%m-%d %H:%M:%S')
             FORCE_START = False
             return jsonify({'status': 'success', 'message': 'Voting time updated.'})
@@ -309,8 +317,129 @@ def admin_dashboard():
         else:
             return jsonify({'status': 'error', 'message': 'Invalid action.'})
 
-    return render_template('admin_dashboard.html', users=users, voting_start=VOTING_START)
+    # Fetch all users
+    cur.execute("SELECT id, username, full_name, email, gender FROM users")
+    users = cur.fetchall()
 
+    # Fetch all categories
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+
+    # Build leaderboard per category
+    leaderboards = {}
+    for cat in categories:
+        cat_id = cat['id']
+        cur.execute("""
+            SELECT u.id, u.username, u.full_name,
+                   COALESCE(er.rating, 1200) AS rating,
+                   (SELECT COUNT(*) 
+                    FROM votes v 
+                    WHERE (v.winner_id = u.id OR v.loser_id = u.id) 
+                      AND v.category_id = ?) AS votes
+            FROM users u
+            LEFT JOIN elo_ratings er ON er.user_id = u.id AND er.category_id = ?
+            ORDER BY rating DESC
+        """, (cat_id, cat_id))
+        leaderboard = cur.fetchall()
+
+        # Assign rank numbers
+        rank = 1
+        prev_rating = None
+        for i, row in enumerate(leaderboard):
+            rating = row['rating']
+            if prev_rating is not None and rating < prev_rating:
+                rank = i + 1
+            row_dict = dict(row)  # Convert sqlite3.Row to dict to allow assignment
+            row_dict['rank'] = rank
+            leaderboard[i] = row_dict
+            prev_rating = rating
+
+        leaderboards[cat['name']] = leaderboard
+
+    cur.close()
+    conn.close()
+
+    return render_template('admin_dashboard.html', users=users, categories=categories,
+                           leaderboards=leaderboards, voting_start=VOTING_START)
+# -----------------------
+# Admin Categories Management
+# -----------------------
+@app.route('/admin_categories', methods=['GET', 'POST'])
+def admin_categories():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        action = data.get('action')
+
+        try:
+            if action == 'add':
+                new_name = data.get('name', '').strip()
+                if not new_name:
+                    return jsonify({'status': 'error', 'message': 'Category name cannot be empty.'}), 400
+
+                # Add category
+                cur.execute("INSERT INTO categories (name) VALUES (?)", (new_name,))
+                cat_id = cur.lastrowid
+
+                # Initialize Elo ratings for all users
+                cur.execute("SELECT id FROM users")
+                users = cur.fetchall()
+                for user in users:
+                    cur.execute(
+                        "INSERT INTO elo_ratings (user_id, category_id, rating) VALUES (?, ?, ?)",
+                        (user['id'], cat_id, 1200)
+                    )
+
+                conn.commit()
+                return jsonify({'status': 'success', 'message': f'Category "{new_name}" added.'})
+
+            elif action == 'rename':
+                cat_id = data.get('id')
+                new_name = data.get('name', '').strip()
+                if not cat_id or not new_name:
+                    return jsonify({'status': 'error', 'message': 'Invalid category ID or name.'}), 400
+
+                cur.execute("UPDATE categories SET name=? WHERE id=?", (new_name, cat_id))
+                conn.commit()
+                return jsonify({'status': 'success', 'message': 'Category renamed.'})
+
+            elif action == 'delete':
+                cat_id = data.get('id')
+                if not cat_id:
+                    return jsonify({'status': 'error', 'message': 'Invalid category ID.'}), 400
+
+                cur.execute("DELETE FROM categories WHERE id=?", (cat_id,))
+                cur.execute("DELETE FROM elo_ratings WHERE category_id=?", (cat_id,))
+                cur.execute("DELETE FROM votes WHERE category_id=?", (cat_id,))
+                conn.commit()
+                return jsonify({'status': 'success', 'message': 'Category deleted.'})
+
+            else:
+                return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
+
+        except sqlite3.Error as e:
+            return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+
+    # GET: return list of categories
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+
+    cur.close()
+    conn.close()
+    return render_template('admin_categories.html', categories=categories)
+
+# -----------------------
+# Admin Logout
+# -----------------------
+@app.route('/admin_logout')
+def admin_logout():
+    session.pop('admin', None)
+    return redirect(url_for('admin_login'))
 
 # -----------------------
 # Dashboard
@@ -373,7 +502,7 @@ def complete_profile():
     return render_template('complete_profile.html')
 
 # -----------------------
-# Complete Profile
+# Select Gender
 # -----------------------
 @app.route('/select_gender', methods=['GET', 'POST'])
 def select_gender():
@@ -406,23 +535,60 @@ def select_gender():
 # -----------------------
 @app.route('/profile')
 def profile():
-    if 'user_id' not in session:
+    if 'username' not in session:
         return redirect(url_for('landing'))
 
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT username, full_name, email, gender FROM users WHERE id = ?", 
-        (session['user_id'],)
-    )
+
+    # Get basic user info (added bio here ✅)
+    cur.execute("SELECT id, username, full_name, bio FROM users WHERE id=?", (session['user_id'],))
     user = cur.fetchone()
+
+    # Get categories
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+
+    profile_data = []
+    for cat in categories:
+        # Count votes by this user in this category
+        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
+        votes_count = cur.fetchone()['cnt']
+
+        if votes_count >= 15:
+            # Get rating
+            cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
+            rating_row = cur.fetchone()
+            rating = rating_row['rating'] if rating_row else 1200
+
+            # Get rank
+            cur.execute("""
+                SELECT COUNT(*)+1 as rank
+                FROM elo_ratings
+                WHERE category_id=? 
+                AND rating > (SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?)
+            """, (cat['id'], user['id'], cat['id']))
+            rank = cur.fetchone()['rank']
+
+            profile_data.append({
+                'category': cat['name'],
+                'votes': votes_count,
+                'rating': round(rating, 1),
+                'rank': rank
+            })
+        else:
+            profile_data.append({
+                'category': cat['name'],
+                'votes': votes_count,
+                'rating': None,
+                'rank': None
+            })
+
     cur.close()
     conn.close()
 
-    if not user:
-        return "User not found.", 404
+    return render_template('profile.html', user=user, profile_data=profile_data)
 
-    return render_template('profile.html', user=user)
 
 # -----------------------
 # category
@@ -433,7 +599,8 @@ def category():
     if 'username' not in session:
         return redirect(url_for('landing'))
 
-    return render_template('category.html', categories=CATEGORIES)
+    categories = get_categories()
+    return render_template('category.html', categories=categories)
 
 # -----------------------
 # Category detail page route
@@ -443,22 +610,140 @@ def category_page(cat_id):
     if 'username' not in session:
         return redirect(url_for('landing'))
 
-    # Ensure valid category index
-    if 1 <= cat_id <= len(VOTING_CATEGORIES):
-        category_name = VOTING_CATEGORIES[cat_id - 1]
-        return f"<h1>{category_name}</h1><p>Voting options will go here.</p>"
-    else:
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Check if category exists
+    cur.execute("SELECT id, name FROM categories WHERE id = ?", (cat_id,))
+    category = cur.fetchone()
+    if not category:
         return "Invalid category.", 404
+
+    # Pick 2 random users for this category
+    cur.execute("""
+        SELECT u.id, u.username, u.full_name, e.rating
+        FROM users u
+        JOIN elo_ratings e ON u.id = e.user_id
+        WHERE e.category_id = ?
+          AND u.id != ?
+        ORDER BY RANDOM()
+        LIMIT 2
+    """, (cat_id, session['user_id']))
+    candidates = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    if len(candidates) < 2:
+        return "Not enough users to vote.", 400
+
+    return render_template('vote.html', category=category, candidates=candidates)
+
+
 
 # -----------------------
 # Voting Page
 # -----------------------
-@app.route('/voting_page')
-def voting_page():
-    if 'username' not in session:
-        return redirect(url_for('landing'))
-    return "<h1>Welcome to the Voting Page!</h1><p>Voting will happen here.</p>"
+@app.route('/vote', methods=['POST'])
+def vote():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'Not logged in.'}), 401
 
+    data = request.get_json(silent=True) or {}
+    try:
+        winner_id = int(data.get('winner_id'))
+        loser_id = int(data.get('loser_id'))
+        category_id = int(data.get('category_id'))
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Invalid payload.'}), 400
+
+    if winner_id == loser_id:
+        return jsonify({'status': 'error', 'message': 'Winner and loser cannot be the same.'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Validate category
+        cur.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,))
+        if not cur.fetchone():
+            return jsonify({'status': 'error', 'message': 'Invalid category.'}), 404
+
+        # Validate users exist
+        cur.execute("SELECT 1 FROM users WHERE id = ?", (winner_id,))
+        if not cur.fetchone():
+            return jsonify({'status': 'error', 'message': 'Invalid winner user.'}), 404
+
+        cur.execute("SELECT 1 FROM users WHERE id = ?", (loser_id,))
+        if not cur.fetchone():
+            return jsonify({'status': 'error', 'message': 'Invalid loser user.'}), 404
+
+        # Ensure Elo rows exist (initialize to 1200 if missing)
+        cur.execute("""
+            INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating)
+            VALUES (?, ?, 1200)
+        """, (winner_id, category_id))
+        cur.execute("""
+            INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating)
+            VALUES (?, ?, 1200)
+        """, (loser_id, category_id))
+
+        # Fetch current ratings
+        cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (winner_id, category_id))
+        wr = cur.fetchone()
+        cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (loser_id, category_id))
+        lr = cur.fetchone()
+
+        if not wr or not lr:
+            return jsonify({'status': 'error', 'message': 'Ratings not initialized.'}), 500
+
+        winner_rating = float(wr['rating'])
+        loser_rating  = float(lr['rating'])
+
+        # Elo update
+        K = 32
+        expected_winner = 1.0 / (1.0 + 10 ** ((loser_rating - winner_rating) / 400.0))
+        expected_loser  = 1.0 - expected_winner
+        new_winner_rating = winner_rating + K * (1 - expected_winner)
+        new_loser_rating  = loser_rating  + K * (0 - expected_loser)
+
+        # Save ratings
+        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?",
+                    (new_winner_rating, winner_id, category_id))
+        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?",
+                    (new_loser_rating, loser_id, category_id))
+
+        # Record vote
+        cur.execute("""
+            INSERT INTO votes (voter_id, winner_id, loser_id, category_id, timestamp)
+            VALUES (?, ?, ?, ?, datetime('now'))
+        """, (session['user_id'], winner_id, loser_id, category_id))
+
+        # Count how many votes this voter has made in this category
+        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?",
+                    (session['user_id'], category_id))
+        votes_count = cur.fetchone()['cnt']
+
+        conn.commit()
+
+        # Response includes current vote count
+        return jsonify({
+            'status': 'success',
+            'message': 'Vote recorded',
+            'votes_in_category': votes_count,
+            'unlocked': votes_count == 15   # true only on exactly 15th vote
+        })
+    except sqlite3.Error as e:
+        return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+    finally:
+        cur.close()
+        conn.close()
+# -----------------------
+# Logout Route
+# -----------------------
+@app.route('/logout')
+def logout():
+    session.clear()  # Clears all session data (user_id, username, admin, etc.)
+    return redirect(url_for('landing'))  # Redirect to your landing page
 
 
 # -----------------------

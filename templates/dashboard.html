@@ -21,7 +21,7 @@
   <p>Sample paragraph</p>
 
   <button id="countdownBtn" disabled>
-    Voting starts in <span id="timer">{{ time_left }}</span> seconds
+    Voting starts in <span id="timer">{{ time_left }}</span>
   </button>
 
   <br>
@@ -35,16 +35,36 @@
 
     if (forceStart) timeLeft = 0;
 
+    function formatTime(seconds) {
+      let d = Math.floor(seconds / (3600 * 24));
+      let h = Math.floor((seconds % (3600 * 24)) / 3600);
+      let m = Math.floor((seconds % 3600) / 60);
+      let s = seconds % 60;
+
+      if (seconds < 60) {
+        return `${s}s`;  // Under a minute → just seconds
+      } else if (seconds < 3600) {
+        return `${m}m ${s.toString().padStart(2, '0')}s`;  // mm:ss
+      } else if (seconds < 86400) {
+        return `${h}h ${m}m`;  // hh:mm
+      } else {
+        return `${d}d ${h}h ${m}m`;  // dd:hh:mm
+      }
+    }
+
     const countdown = setInterval(() => {
       if (timeLeft > 0) {
         timeLeft--;
-        timerSpan.textContent = timeLeft;
+        timerSpan.textContent = formatTime(timeLeft);
       } else {
         clearInterval(countdown);
         countdownBtn.textContent = "Start Voting";
         countdownBtn.disabled = false;
       }
     }, 1000);
+
+    // Initial render
+    timerSpan.textContent = formatTime(timeLeft);
 
     countdownBtn.onclick = () => {
       window.location.href = "/category";

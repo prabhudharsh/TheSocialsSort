@@ -1,32 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <title>{{ user['full_name'] or user['username'] }}'s Profile</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 50px; text-align: center; }
-    .profile-card {
-      display: inline-block;
-      text-align: left;
-      border: 1px solid #333;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 2px 2px 12px #aaa;
-      min-width: 300px;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
     }
-    .profile-card h2 { text-align: center; }
-    .profile-card p { font-size: 18px; margin: 10px 0; }
-    button { margin: 10px 5px 0 0; padding: 10px 20px; cursor: pointer; }
+    h1, h2 {
+      margin-bottom: 15px;
+    }
+    .info {
+      margin-bottom: 20px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    .button-container {
+      margin-top: 30px;
+      display: flex;
+      gap: 20px;
+    }
+    .btn-div {
+      padding: 12px 20px;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: bold;
+      width: 150px;
+    }
+    .btn-div:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
-  <div class="profile-card">
-    <h2>Profile</h2>
-    <p><strong>Username:</strong> {{ user['username'] }}</p>
-    <p><strong>Full Name:</strong> {{ user['full_name'] or 'N/A' }}</p>
-    <p><strong>Email:</strong> {{ user['email'] }}</p>
-    <p><strong>Gender:</strong> {{ user['gender'] or 'N/A' }}</p>
 
-    <button onclick="window.location.href='/dashboard'">Back to Dashboard</button>
-    <button onclick="window.location.href='/logout'">Logout</button>
+  <h1>{{ user['full_name'] or user['username'] }}'s Profile</h1>
+
+  <div class="info">
+    <p><strong>Bio:</strong> {{ user['bio'] or "No bio added yet." }}</p>
   </div>
+
+  <h2>Categories</h2>
+  <ul>
+    {% for cat in profile_data %}
+      <li>
+        <strong>{{ cat.category }}</strong> -
+        {% if cat.rating %}
+          Rating: {{ "%.1f"|format(cat.rating) }} | Rank: #{{ cat.rank }}
+        {% else %}
+          Not enough votes yet ({{ cat.votes }}/15)
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="button-container">
+    <div class="btn-div" onclick="window.location.href='/dashboard'">Dashboard</div>
+    <div class="btn-div" onclick="window.location.href='/logout'">Logout</div>
+  </div>
+
 </body>
 </html>

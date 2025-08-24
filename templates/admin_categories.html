@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Categories</title>
+    <style>
+        table { border-collapse: collapse; width: 60%; margin: auto; }
+        th, td { border: 1px solid #333; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        input, button { padding: 6px 12px; margin: 5px; }
+        .action-btn { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h1>Manage Categories</h1>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Actions</th>
+    </tr>
+    {% for cat in categories %}
+    <tr>
+        <td>{{ cat['id'] }}</td>
+        <td>
+            <input type="text" value="{{ cat['name'] }}" id="name-{{ cat['id'] }}">
+        </td>
+        <td>
+            <button onclick="renameCategory({{ cat['id'] }})">Rename</button>
+            <button onclick="deleteCategory({{ cat['id'] }})">Delete</button>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h3>Add New Category</h3>
+<input type="text" id="newCategory" placeholder="Category name">
+<button onclick="addCategory()">Add</button>
+
+<script>
+async function sendAction(action, id=null, name='') {
+    const res = await fetch('/admin_categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, id, name })
+    });
+    const data = await res.json();
+    alert(data.message);
+    if (data.status === 'success') location.reload();
+}
+
+function renameCategory(id) {
+    const name = document.getElementById(`name-${id}`).value.trim();
+    if (name) sendAction('rename', id, name);
+}
+
+function deleteCategory(id) {
+    if (confirm('Are you sure you want to delete this category?')) {
+        sendAction('delete', id);
+    }
+}
+
+function addCategory() {
+    const name = document.getElementById('newCategory').value.trim();
+    if (name) sendAction('add', null, name);
+}
+</script>
+
+</body>
+</html>
