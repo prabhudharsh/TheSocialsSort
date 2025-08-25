@@ -3,71 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <title>{{ user['full_name'] or user['username'] }}'s Profile</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-    }
-    h1, h2 {
-      margin-bottom: 15px;
-    }
-    .info {
-      margin-bottom: 20px;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      margin-bottom: 10px;
-    }
-    .button-container {
-      margin-top: 30px;
-      display: flex;
-      gap: 20px;
-    }
-    .btn-div {
-      padding: 12px 20px;
-      background-color: #007BFF;
-      color: white;
-      border-radius: 10px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.3s;
-      font-weight: bold;
-      width: 150px;
-    }
-    .btn-div:hover {
-      background-color: #0056b3;
-    }
-  </style>
+  <!-- Google Fonts Import -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Link to the new CSS file -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 </head>
 <body>
+    <!-- ===============================
+         HEADER
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+    </header>
 
-  <h1>{{ user['full_name'] or user['username'] }}'s Profile</h1>
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="profile-container">
+        <div class="profile-header">
+            <img src="{{ url_for('static', filename='images/' + ('male.png' if user.gender == 'male' else 'female.png')) }}" alt="Profile Picture" class="profile-pic">
+            <h1 class="profile-name">{{ user['full_name'] or user['username'] }}</h1>
+            <p class="profile-bio">{{ user['bio'] or "No bio added yet." }}</p>
+        </div>
 
-  <div class="info">
-    <p><strong>Bio:</strong> {{ user['bio'] or "No bio added yet." }}</p>
-  </div>
+        <div class="ranks-section">
+            <h2>Ranks</h2>
+            <ul class="ranks-list">
+                {% for cat in profile_data %}
+                  <li class="rank-item">
+                    <span>{{ cat.category }}:</span>
+                    <span>
+                        {% if cat.rating %}
+                          Rank #{{ cat.rank }}
+                        {% else %}
+                          Not enough votes yet ({{ cat.votes }}/15)
+                        {% endif %}
+                    </span>
+                  </li>
+                {% endfor %}
+            </ul>
+        </div>
 
-  <h2>Categories</h2>
-  <ul>
-    {% for cat in profile_data %}
-      <li>
-        <strong>{{ cat.category }}</strong> -
-        {% if cat.rating %}
-          Rating: {{ "%.1f"|format(cat.rating) }} | Rank: #{{ cat.rank }}
-        {% else %}
-          Not enough votes yet ({{ cat.votes }}/15)
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-
-  <div class="button-container">
-    <div class="btn-div" onclick="window.location.href='/dashboard'">Dashboard</div>
-    <div class="btn-div" onclick="window.location.href='/logout'">Logout</div>
-  </div>
+        <div class="button-container">
+            <a href="/dashboard" class="btn">Head Back</a>
+            <a href="/logout" class="btn">Logout</a>
+        </div>
+    </main>
 
 </body>
 </html>

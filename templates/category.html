@@ -1,10 +1,81 @@
-<h2>Categories</h2>
-<ul>
-  {% for category in categories %}
-    <li>
-      <a href="{{ url_for('category_page', cat_id=category['id']) }}">
-        {{ category['name'] }}
-      </a>
-    </li>
-  {% endfor %}
-</ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select a Category - The Social Sort</title>
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to the new CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/category.css') }}">
+</head>
+<body>
+    <!-- ===============================
+         HEADER
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+        <div class="profile-icon">
+            <a href="/profile">
+                <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
+            </a>
+        </div>
+    </header>
+
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="category-container">
+        <div class="category-header">
+            <h1 class="category-title">Pick category</h1>
+            <p class="category-subtitle">
+                A person is not one thing, but a constellation of traits. Each category below is a different lens to view our class through. One reveals kindness, another humor, another a quiet strength. Choose the lens you wish to look through. With every vote, you help bring the true picture of who we are into focus.
+            </p>
+        </div>
+
+        <ul class="category-list" id="category-list">
+            {% for category in categories %}
+                <li class="category-item" data-cat-id="{{ category['id'] }}">{{ category['name'] }}</li>
+            {% endfor %}
+        </ul>
+
+        <button class="btn-next" id="next-btn" disabled>Next</button>
+    </main>
+
+    <!-- ===============================
+         SCRIPT
+         =============================== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryList = document.getElementById('category-list');
+            const nextBtn = document.getElementById('next-btn');
+            let selectedCategoryId = null;
+
+            categoryList.addEventListener('click', function(e) {
+                if (e.target && e.target.matches('li.category-item')) {
+                    // Remove 'selected' from any previously selected item
+                    const currentlySelected = categoryList.querySelector('.selected');
+                    if (currentlySelected) {
+                        currentlySelected.classList.remove('selected');
+                    }
+
+                    // Add 'selected' to the clicked item and enable the button
+                    e.target.classList.add('selected');
+                    selectedCategoryId = e.target.dataset.catId;
+                    nextBtn.disabled = false;
+                }
+            });
+
+            nextBtn.addEventListener('click', function() {
+                if (selectedCategoryId) {
+                    window.location.href = `/category/${selectedCategoryId}`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

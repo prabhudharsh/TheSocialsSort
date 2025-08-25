@@ -1,74 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-    button {
-      padding: 15px 30px;
-      font-size: 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      border: 2px solid #333;
-      background-color: #f0f0f0;
-      transition: background-color 0.2s;
-      margin: 10px;
-    }
-    button:hover { background-color: #ddd; }
-    button:disabled { cursor: not-allowed; opacity: 0.6; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - The Social Sort</title>
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to the new CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
-  <p>Sample paragraph</p>
+    <!-- ===============================
+         HEADER
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+        <div class="profile-icon">
+            <a href="/profile">
+                <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
+            </a>
+        </div>
+    </header>
 
-  <button id="countdownBtn" disabled>
-    Voting starts in <span id="timer">{{ time_left }}</span>
-  </button>
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="dashboard-container">
+        <h1 class="dashboard-title">Before you begin.</h1>
+        <p class="dashboard-text">
+            Between the lessons learned and the words we say aloud, a silent story of our class is constantly being written. This project was born from a desire to read that story, to hold a mirror to our small world and glimpse the invisible reputations that shimmer around each name. It is a map of the unspoken, a quiet census of our shared experience.
+        </p>
+        <p class="dashboard-text">
+            To keep this mirror true, your reflection must remain unseen. Every vote you cast is a nameless whisper, a choice that arrives without a shadow, its origin known only to you. This anonymity is our promise to you, the foundation of a fairness that allows for pure honesty, untainted by friendship or fear.
+        </p>
+        <p class="dashboard-text">
+            So, we ask this of you: find a quiet moment, away from the influence of others. Let the noise of the hallway fade.
+        </p>
+        <p class="dashboard-text">
+            Cast your vote when no one’s watching, for it is in the stillness of solitude that the most honest thoughts arise.
+        </p>
 
-  <br>
-  <button id="profileBtn" onclick="window.location.href='/profile'">Profile</button>
+        <button id="countdownBtn" class="btn-voting" disabled>
+            Voting Begins in: <span id="timer">{{ time_left }}</span>
+        </button>
+    </main>
 
-  <script>
-    let timeLeft = {{ time_left }};
-    const forceStart = {{ force_start|default(False)|lower }};
-    const timerSpan = document.getElementById('timer');
-    const countdownBtn = document.getElementById('countdownBtn');
+    <!-- ===============================
+         SCRIPT
+         =============================== -->
+    <script>
+        let timeLeft = {{ time_left }};
+        const forceStart = {{ force_start|default(False)|lower }};
+        const timerSpan = document.getElementById('timer');
+        const countdownBtn = document.getElementById('countdownBtn');
 
-    if (forceStart) timeLeft = 0;
+        if (forceStart) timeLeft = 0;
 
-    function formatTime(seconds) {
-      let d = Math.floor(seconds / (3600 * 24));
-      let h = Math.floor((seconds % (3600 * 24)) / 3600);
-      let m = Math.floor((seconds % 3600) / 60);
-      let s = seconds % 60;
+        function formatTime(seconds) {
+            let d = Math.floor(seconds / (3600 * 24));
+            let h = Math.floor((seconds % (3600 * 24)) / 3600);
+            let m = Math.floor((seconds % 3600) / 60);
+            let s = seconds % 60;
 
-      if (seconds < 60) {
-        return `${s}s`;  // Under a minute → just seconds
-      } else if (seconds < 3600) {
-        return `${m}m ${s.toString().padStart(2, '0')}s`;  // mm:ss
-      } else if (seconds < 86400) {
-        return `${h}h ${m}m`;  // hh:mm
-      } else {
-        return `${d}d ${h}h ${m}m`;  // dd:hh:mm
-      }
-    }
+            if (seconds < 60) {
+                return `${s}s`;
+            } else if (seconds < 3600) {
+                return `${m}m ${s.toString().padStart(2, '0')}s`;
+            } else if (seconds < 86400) {
+                return `${h}h ${m}m`;
+            } else {
+                return `${d}d ${h}h ${m}m`;
+            }
+        }
 
-    const countdown = setInterval(() => {
-      if (timeLeft > 0) {
-        timeLeft--;
-        timerSpan.textContent = formatTime(timeLeft);
-      } else {
-        clearInterval(countdown);
-        countdownBtn.textContent = "Start Voting";
-        countdownBtn.disabled = false;
-      }
-    }, 1000);
+        const countdown = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                timerSpan.textContent = " " + formatTime(timeLeft); // Added space before the time
+            } else {
+                clearInterval(countdown);
+                countdownBtn.textContent = "Start Voting";
+                countdownBtn.disabled = false;
+            }
+        }, 1000);
 
-    // Initial render
-    timerSpan.textContent = formatTime(timeLeft);
+        timerSpan.textContent = " " + formatTime(timeLeft); // Added space for initial render
 
-    countdownBtn.onclick = () => {
-      window.location.href = "/category";
-    };
-  </script>
+        countdownBtn.onclick = () => {
+            window.location.href = "/category";
+        };
+    </script>
 </body>
 </html>

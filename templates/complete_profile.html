@@ -1,22 +1,81 @@
-<form id="profileForm">
-    <input type="text" name="full_name" placeholder="Full Name" required>
-    <textarea name="bio" placeholder="Your bio..." required></textarea>
-    <button type="submit">Next</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Profile - The Social Sort</title>
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to the new CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/complete_profile.css') }}">
+</head>
+<body>
+    <!-- ===============================
+         HEADER
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+    </header>
 
-<script>
-document.getElementById('profileForm').onsubmit = async e => {
-    e.preventDefault();
-    const full_name = e.target.full_name.value;
-    const bio = e.target.bio.value;
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="profile-container">
+        <div class="profile-header">
+            <h1 class="profile-title">Welcome.</h1>
+            <p class="profile-subtitle">Tell us more about yourself.</p>
+        </div>
 
-    const res = await fetch('/complete_profile', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({full_name, bio})
-    });
-    const data = await res.json();
-    if (data.status === 'success') window.location.href = data.redirect;
-    else alert(data.message);
-};
-</script>
+        <form id="profileForm" class="profile-form">
+            <div class="form-group">
+                <label for="full_name">Name*</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
+            <div class="form-group">
+                <label for="bio">Bio*</label>
+                <textarea id="bio" name="bio" rows="6" required></textarea>
+            </div>
+            <button type="submit" class="btn-next">
+                <span>Next</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 5L19 12L12 19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </form>
+    </main>
+
+    <!-- ===============================
+         SCRIPT
+         =============================== -->
+    <script>
+    document.getElementById('profileForm').onsubmit = async e => {
+        e.preventDefault();
+        const full_name = e.target.full_name.value;
+        const bio = e.target.bio.value;
+
+        try {
+            const res = await fetch('/complete_profile', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({full_name, bio})
+            });
+            const data = await res.json();
+            if (data.status === 'success' && data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                // You can replace this alert with a more user-friendly message display
+                alert(data.message || 'An error occurred.');
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            alert('Could not connect to the server.');
+        }
+    };
+    </script>
+</body>
+</html>

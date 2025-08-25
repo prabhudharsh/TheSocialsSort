@@ -1,47 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <style>
-    .gender-btn {
-      display: inline-block;
-      padding: 20px 40px;
-      margin: 20px;
-      font-size: 20px;
-      text-align: center;
-      cursor: pointer;
-      border: 2px solid #333;
-      border-radius: 10px;
-      transition: background-color 0.2s, color 0.2s;
-      user-select: none;
-    }
-    .gender-btn:hover {
-      background-color: #333;
-      color: white;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Gender - The Social Sort</title>
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to the new CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/select_gender.css') }}">
 </head>
 <body>
-  <h2>Select Your Gender</h2>
-  <div id="male" class="gender-btn">Male</div>
-  <div id="female" class="gender-btn">Female</div>
+    <!-- ===============================
+         HEADER
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+    </header>
 
-  <script>
-    async function selectGender(gender) {
-      const res = await fetch('/select_gender', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({gender})
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        window.location.href = data.redirect;
-      } else {
-        alert(data.message);
-      }
-    }
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="gender-container">
+        <div class="gender-header">
+            <h1 class="gender-title">Welcome.</h1>
+            <p class="gender-subtitle">Tell us more about yourself.</p>
+        </div>
 
-    document.getElementById('male').onclick = () => selectGender('male');
-    document.getElementById('female').onclick = () => selectGender('female');
-  </script>
+        <div class="gender-selection" id="gender-selection-container">
+            <button class="gender-btn" id="male-btn" data-gender="male">
+                <img src="{{ url_for('static', filename='images/male.png') }}" alt="Select Male">
+            </button>
+            <button class="gender-btn" id="female-btn" data-gender="female">
+                <img src="{{ url_for('static', filename='images/female.png') }}" alt="Select Female">
+            </button>
+        </div>
+
+        <button class="btn-create" id="create-btn">Create</button>
+    </main>
+
+    <!-- ===============================
+         SCRIPT
+         =============================== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const maleBtn = document.getElementById('male-btn');
+            const femaleBtn = document.getElementById('female-btn');
+            const createBtn = document.getElementById('create-btn');
+            const selectionContainer = document.getElementById('gender-selection-container');
+            let selectedGender = null;
+
+            function handleGenderSelection(clickedBtn) {
+                const otherBtn = clickedBtn === maleBtn ? femaleBtn : maleBtn;
+
+                // If the clicked button is already selected, reset everything
+                if (clickedBtn.classList.contains('selected')) {
+                    selectedGender = null;
+                    maleBtn.classList.remove('selected', 'hidden');
+                    femaleBtn.classList.remove('selected', 'hidden');
+                    createBtn.classList.remove('visible');
+                    selectionContainer.style.gap = '2rem'; // Restore the gap
+                } else {
+                    // Otherwise, select the new gender
+                    selectedGender = clickedBtn.dataset.gender;
+                    
+                    // Add selected class, hide the other button, and remove the gap for centering
+                    clickedBtn.classList.add('selected');
+                    otherBtn.classList.add('hidden');
+                    selectionContainer.style.gap = '0'; // Remove the gap
+
+                    // Make sure the selected button is not hidden
+                    clickedBtn.classList.remove('hidden');
+
+                    // Show the create button
+                    createBtn.classList.add('visible');
+                }
+            }
+
+            maleBtn.addEventListener('click', () => handleGenderSelection(maleBtn));
+            femaleBtn.addEventListener('click', () => handleGenderSelection(femaleBtn));
+
+            createBtn.addEventListener('click', async () => {
+                if (selectedGender) {
+                    try {
+                        const res = await fetch('/select_gender', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ gender: selectedGender })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success' && data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            alert(data.message || 'An error occurred.');
+                        }
+                    } catch (error) {
+                        console.error('Error submitting gender:', error);
+                        alert('Could not connect to the server.');
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

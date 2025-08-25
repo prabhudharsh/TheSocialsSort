@@ -2,99 +2,203 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Social Sort - Landing</title>
+  <!-- Google Fonts Import -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@200;400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Link to your CSS file -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
+  <div class="page-wrapper">
+    <!-- ===============================
+         NAVBAR
+         =============================== -->
+    <header class="navbar">
+      <div class="logo-container">
+        <!-- The logo is now an image -->
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="The Social Sort Logo" class="logo-img">
+        <span class="logo-text">The Social Sort</span>
+      </div>
+      <nav class="nav-links">
+        <a href="aboutus.html">About us</a>
+        <a href="websitegoal.html">Website Goal</a>
+        <a href="#" id="login-btn">Sign in</a>
+        <a href="#" id="signup-btn" class="btn-get-started">Get Started</a>
+      </nav>
+    </header>
+
+    <!-- ===============================
+         MAIN LANDING CONTENT
+         =============================== -->
+    <main class="landing-container">
+      <!-- Left Column: Image -->
+      <div class="image-section">
+        <img src="{{ url_for('static', filename='images/cage.png') }}" alt="A bird in an open cage illustration" class="main-image">
+      </div>
+      <!-- Right Column: Text -->
+      <div class="text-section">
+        <!-- Updated for typing effect -->
+        <p><span id="typing-text"></span><span id="cursor">|</span></p>
+      </div>
+    </main>
+  </div>
+
   <!-- ===============================
-       NAVBAR
+       MODALS (All updated to new structure)
        =============================== -->
-  <header class="navbar fade-in">
-    <div class="logo-container">
-      <span class="logo-text">The Social Sort</span>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Welcome back.</h2>
+            <button type="button" class="close-modal" id="close-login">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="login-message"></div>
+            <form id="login-form">
+                <div class="input-group">
+                    <img src="{{ url_for('static', filename='images/mail.png') }}" alt="email icon" class="input-icon">
+                    <input type="text" name="username" placeholder="Enter your username" required />
+                </div>
+                <div class="input-group">
+                    <img src="{{ url_for('static', filename='images/lock.png') }}" alt="password icon" class="input-icon">
+                    <input type="password" name="password" placeholder="Enter your password" required id="login-password-input" />
+                    <img src="{{ url_for('static', filename='images/eye.png') }}" alt="toggle password visibility" class="password-toggle" id="login-password-toggle-icon">
+                </div>
+                <button type="submit" class="btn-submit">Sign In</button>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <p>No account? <a href="#" id="create-account-link">Create one</a></p>
+            <p class="terms-text">Click "Sign in" to agree to <a href="tos.html" target="_blank">The Social Sort's Terms of Service</a> and acknowledge that it applies to you</p>
+        </div>
     </div>
-    <nav class="nav-links">
-      <a href="#">About us</a>
-      <a href="#">Website Goal</a>
-      <a href="#" id="login-btn">Sign in</a>
-      <a href="#" id="signup-btn" class="btn-get-started">Get Started</a>
-    </nav>
-  </header>
-
-  <!-- ===============================
-       MAIN LANDING CONTENT
-       =============================== -->
-  <main class="landing-container fade-in">
-    <div class="text-section">
-      <span id="typing-text"></span><span id="cursor">|</span>
-    </div>
-  </main>
-
-  <!-- ===============================
-       LOGIN MODAL
-       =============================== -->
-  <div id="login-modal" class="modal" style="display:none; position:fixed; top:20%; left:40%; background:#fff; padding:20px; border:1px solid #000;">
-    <h3>Login</h3>
-    <div id="login-message"></div>
-    <form id="login-form">
-      <input type="text" name="username" placeholder="Username" required /><br/><br/>
-      <input type="password" name="password" placeholder="Password" required /><br/><br/>
-      <button type="submit">Login</button>
-      <button type="button" id="close-login">Close</button>
-    </form>
   </div>
 
-  <!-- ===============================
-       SIGNUP MODAL
-       =============================== -->
-  <div id="signup-modal" class="modal" style="display:none; position:fixed; top:20%; left:40%; background:#fff; padding:20px; border:1px solid #000;">
-    <h3>Sign Up</h3>
-    <div id="signup-message"></div>
-    <form id="signup-form">
-      <input type="text" name="username" placeholder="Username" required /><br/><br/>
-      <input type="email" name="email" placeholder="Email" required /><br/><br/>
-      <input type="password" name="password" placeholder="Password" required /><br/><br/>
-      <button type="submit" id="signup-verify">Verify</button>
-      <button type="button" id="close-signup">Close</button>
-    </form>
+
+  <!-- SIGNUP MODAL -->
+  <div id="signup-modal" class="modal-overlay" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Create an Account</h2>
+          <button type="button" class="close-modal" id="close-signup">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="signup-message"></div>
+            <form id="signup-form">
+              <div class="input-group">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="user icon" class="input-icon">
+                <input type="text" name="username" placeholder="Enter your User ID" required />
+              </div>
+              <div class="input-group">
+                <img src="{{ url_for('static', filename='images/mail.png') }}" alt="email icon" class="input-icon">
+                <input type="email" name="email" placeholder="email@gmail.com" required />
+              </div>
+              <div class="input-group">
+                <img src="{{ url_for('static', filename='images/lock.png') }}" alt="password icon" class="input-icon">
+                <input type="password" name="password" placeholder="Enter your password" required id="signup-password-input" />
+                <img src="{{ url_for('static', filename='images/eye.png') }}" alt="toggle password visibility" class="password-toggle" id="signup-password-toggle-icon">
+              </div>
+              <button type="submit" id="signup-verify" class="btn-submit">Sign up</button>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <p>Already have an account? <a href="#" id="signin-link">Sign in</a></p>
+            <p class="terms-text">Click "Sign up" to agree to The Social Sort's Terms of Service and acknowledge that it applies to you</p>
+        </div>
+      </div>
   </div>
 
-  <!-- ===============================
-       OTP MODAL (appears after signup verify)
-       =============================== -->
-  <div id="otp-modal" class="modal" style="display:none; position:fixed; top:20%; left:40%; background:#fff; padding:20px; border:1px solid #000;">
-    <h3>Enter OTP</h3>
-    <div id="otp-message"></div>
-    <form id="otp-form">
-      <input type="text" name="otp" placeholder="Enter OTP" required /><br/><br/>
-      <button type="submit">Sign Up</button>
-      <button type="button" id="close-otp">Close</button>
-    </form>
+  <!-- OTP MODAL -->
+  <div id="otp-modal" class="modal-overlay" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Enter OTP</h2>
+          <button type="button" class="close-modal" id="close-otp">&times;</button>
+        </div>
+        <div id="otp-message"></div>
+        <form id="otp-form">
+          <div class="input-group">
+            <input type="text" name="otp" placeholder="Enter OTP" required />
+          </div>
+          <button type="submit" class="btn-submit">Sign Up</button>
+        </form>
+      </div>
   </div>
 
+  <!-- Your existing modal script -->
   <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
-  <script>
-    // Typing effect
-    const text = `We are a constellation,
-each name a star seen in a
-different light. Some shine for
-their brilliance, others for their
-warmth.
-This is a place to see the patterns
-we form and the lines that are
-drawn between us.`;
 
-    let index = 0;
-    const speed = 10;
-    function typeEffect() {
-      if (index < text.length) {
-        document.getElementById("typing-text").innerHTML += text.charAt(index);
-        index++;
-        setTimeout(typeEffect, speed);
+  <!-- Script for password toggle and switching modals -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- Element Selectors ---
+      const loginPasswordInput = document.getElementById('login-password-input');
+      const loginToggleIcon = document.getElementById('login-password-toggle-icon');
+      const signupPasswordInput = document.getElementById('signup-password-input');
+      const signupToggleIcon = document.getElementById('signup-password-toggle-icon');
+      
+      const createAccountLink = document.getElementById('create-account-link');
+      const signinLink = document.getElementById('signin-link');
+      const loginModal = document.getElementById('login-modal');
+      const signupModal = document.getElementById('signup-modal');
+
+      // --- Password Visibility Toggles ---
+      if (loginToggleIcon) {
+        loginToggleIcon.addEventListener('click', function() {
+          const type = loginPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          loginPasswordInput.setAttribute('type', type);
+        });
       }
-    }
-    window.onload = typeEffect;
+      
+      if (signupToggleIcon) {
+        signupToggleIcon.addEventListener('click', function() {
+          const type = signupPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          signupPasswordInput.setAttribute('type', type);
+        });
+      }
+
+      // --- Modal Switching ---
+      if (createAccountLink) {
+        createAccountLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          loginModal.style.display = 'none';
+          signupModal.style.display = 'flex';
+        });
+      }
+      
+      if (signinLink) {
+        signinLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          signupModal.style.display = 'none';
+          loginModal.style.display = 'flex';
+        });
+      }
+
+      // --- Typing effect script ---
+      const typingTextElement = document.getElementById('typing-text');
+      const cursorElement = document.getElementById('cursor');
+      if (typingTextElement && cursorElement) {
+          const text = `We are a <strong>constellation,</strong> each name a star seen in a different light. Some shine for their brilliance, others for their warmth. This is a place to see the patterns we form and the lines that are drawn between us.`;
+          let index = 0;
+          const speed = 40;
+
+          function typeWriter() {
+              if (index < text.length) {
+                  typingTextElement.innerHTML = text.slice(0, index + 1);
+                  index++;
+                  setTimeout(typeWriter, speed);
+              } else {
+                  cursorElement.style.display = 'none';
+              }
+          }
+          typeWriter();
+      }
+    });
   </script>
 </body>
 </html>

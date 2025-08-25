@@ -17,7 +17,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
 # Global voting control
-VOTING_START = datetime.now() + timedelta(seconds=2)
+VOTING_START = datetime.now() + timedelta(seconds=0)
 FORCE_START = False
 
 
@@ -263,7 +263,7 @@ def verify_otp_ajax():
         conn.close()
 
     session.pop('pending_user')
-    return jsonify({'status': 'success', 'message': 'Signup successful! Redirecting to dashboard...'})
+    return jsonify({'status': 'success', 'message': 'Signup successful! Redirecting to login page...'})
 
 
 # -----------------------
@@ -467,9 +467,8 @@ def dashboard():
     if time_left < 0:
         time_left = 0
 
-    # Render dashboard template with universal countdown
-    return render_template('dashboard.html', username=session['username'], time_left=time_left)
-
+    # Render dashboard template with universal countdown AND the user's gender
+    return render_template('dashboard.html', username=session['username'], time_left=time_left, gender=user['gender'])
 # -----------------------
 # Complete Profile
 # -----------------------
@@ -541,8 +540,8 @@ def profile():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Get basic user info (added bio here ✅)
-    cur.execute("SELECT id, username, full_name, bio FROM users WHERE id=?", (session['user_id'],))
+    # Get basic user info (added gender here ✅)
+    cur.execute("SELECT id, username, full_name, bio, gender FROM users WHERE id=?", (session['user_id'],))
     user = cur.fetchone()
 
     # Get categories
@@ -589,7 +588,6 @@ def profile():
 
     return render_template('profile.html', user=user, profile_data=profile_data)
 
-
 # -----------------------
 # category
 # -----------------------
@@ -607,21 +605,28 @@ def category():
 # -----------------------
 @app.route('/category/<int:cat_id>')
 def category_page(cat_id):
-    if 'username' not in session:
+    if 'user_id' not in session: # It's safer to check for user_id
         return redirect(url_for('landing'))
 
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Check if category exists
+    # 1. ADDED: Get the logged-in user's gender for the profile icon
+    cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+    user = cur.fetchone()
+    user_gender = user['gender'] if user else 'male' # Default to 'male' if not found
+
+    # Check if category exists (Your code was already correct here)
     cur.execute("SELECT id, name FROM categories WHERE id = ?", (cat_id,))
     category = cur.fetchone()
     if not category:
+        cur.close()
+        conn.close()
         return "Invalid category.", 404
 
-    # Pick 2 random users for this category
+    # 2. MODIFIED: Added 'u.gender' to your query to get each candidate's gender
     cur.execute("""
-        SELECT u.id, u.username, u.full_name, e.rating
+        SELECT u.id, u.username, u.full_name, u.gender, e.rating
         FROM users u
         JOIN elo_ratings e ON u.id = e.user_id
         WHERE e.category_id = ?
@@ -635,11 +640,14 @@ def category_page(cat_id):
     conn.close()
 
     if len(candidates) < 2:
-        return "Not enough users to vote.", 400
+        # A more descriptive message
+        return "Not enough rated users in this category to vote.", 400
 
-    return render_template('vote.html', category=category, candidates=candidates)
-
-
+    # 3. MODIFIED: Added 'gender=user_gender' to send the logged-in user's gender to the HTML
+    return render_template('vote.html', 
+                           category=category, 
+                           candidates=candidates, 
+                           gender=user_gender)
 
 # -----------------------
 # Voting Page
@@ -663,6 +671,11 @@ def vote():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # Get the current user's gender
+        cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        user_gender = user['gender'] if user else None
+
         # Validate category
         cur.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,))
         if not cur.fetchone():
@@ -676,6 +689,13 @@ def vote():
         cur.execute("SELECT 1 FROM users WHERE id = ?", (loser_id,))
         if not cur.fetchone():
             return jsonify({'status': 'error', 'message': 'Invalid loser user.'}), 404
+
+        # Check current vote count for this voter in this category
+        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?",
+                    (session['user_id'], category_id))
+        votes_count = cur.fetchone()['cnt']
+        if votes_count >= 20:
+            return jsonify({'status': 'error', 'message': 'Max 20 votes allowed per category.'}), 403
 
         # Ensure Elo rows exist (initialize to 1200 if missing)
         cur.execute("""
@@ -703,8 +723,8 @@ def vote():
         K = 32
         expected_winner = 1.0 / (1.0 + 10 ** ((loser_rating - winner_rating) / 400.0))
         expected_loser  = 1.0 - expected_winner
-        new_winner_rating = winner_rating + K * (1 - expected_winner)
-        new_loser_rating  = loser_rating  + K * (0 - expected_loser)
+        new_winner_rating = round(winner_rating + K * (1 - expected_winner), 1)
+        new_loser_rating  = round(loser_rating  + K * (0 - expected_loser), 1)
 
         # Save ratings
         cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?",
@@ -718,25 +738,27 @@ def vote():
             VALUES (?, ?, ?, ?, datetime('now'))
         """, (session['user_id'], winner_id, loser_id, category_id))
 
-        # Count how many votes this voter has made in this category
+        # Update votes count after insertion
         cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?",
                     (session['user_id'], category_id))
         votes_count = cur.fetchone()['cnt']
 
         conn.commit()
 
-        # Response includes current vote count
         return jsonify({
             'status': 'success',
             'message': 'Vote recorded',
             'votes_in_category': votes_count,
-            'unlocked': votes_count == 15   # true only on exactly 15th vote
+            'unlocked': votes_count >= 15,  # unlock if 15 or more votes
+            'gender': user_gender # Added gender to the response
         })
-    except sqlite3.Error as e:
-        return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': f'Unexpected error: {e}'}), 500
     finally:
         cur.close()
         conn.close()
+
 # -----------------------
 # Logout Route
 # -----------------------

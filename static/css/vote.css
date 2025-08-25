@@ -1,0 +1,132 @@
+/* ===============================
+   GENERAL & FONTS
+   =============================== */
+body {
+    margin: 0;
+    font-family: 'Ubuntu Sans', sans-serif;
+    background-color: #F5F1EC;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ===============================
+   NAVBAR STYLING (FIXED)
+   =============================== */
+.navbar {
+    display: flex;
+    justify-content: space-between; /* This aligns items to the ends */
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #E0D9D1;
+}
+
+.logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.profile-icon img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* ===============================
+   MAIN CONTENT (No Changes Below)
+   =============================== */
+.vote-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+.vote-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.75rem;
+    font-weight: 400;
+    margin-bottom: 40px;
+}
+
+/* ===============================
+   CANDIDATES
+   =============================== */
+.candidates-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    margin-bottom: 50px;
+}
+
+.candidate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.candidate-image-wrapper {
+    margin-bottom: 15px;
+}
+
+.candidate img {
+    width: 136px;
+    height: 136px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 1px solid #E0D9D1;
+}
+
+.candidate-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* --- Selection Animations --- */
+.candidate.selected {
+    transform: scale(1.05);
+}
+
+.candidate.not-selected {
+    opacity: 0.5;
+}
+
+/* ===============================
+   NEXT BUTTON
+   =============================== */
+.btn-next {
+    font-family: 'Ubuntu Sans', sans-serif;
+    background-color: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 60px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+}
+
+.btn-next.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.btn-next:hover {
+    background-color: #333;
+}

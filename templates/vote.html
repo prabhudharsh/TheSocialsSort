@@ -3,94 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ category['name'] }} - Voting</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 40px;
-        }
-        .container {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-        }
-        .candidate {
-            border: 2px solid #ccc;
-            padding: 20px;
-            border-radius: 10px;
-            width: 200px;
-            transition: 0.3s;
-            cursor: pointer;
-        }
-        .candidate:hover {
-            border-color: #007BFF;
-            box-shadow: 0 0 10px #007BFF;
-        }
-        .vote-btn, .dashboard-btn {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .vote-btn:hover, .dashboard-btn:hover {
-            background-color: #0056b3;
-        }
-        #message {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
 </head>
 <body>
-
-    <h1>Vote for {{ category['name'] }}</h1>
-
-    <div class="container">
-        {% for c in candidates %}
-        <div class="candidate">
-            <h3>{{ c['full_name'] or c['username'] }}</h3>
-            <button class="vote-btn" onclick="castVote({{ c['id'] }})">Vote</button>
+    <!-- ===============================
+         HEADER (FIXED)
+         =============================== -->
+    <header class="navbar">
+        <!-- Simplified structure for correct alignment -->
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
         </div>
-        {% endfor %}
-    </div>
+        <div class="profile-icon">
+            <a href="/profile">
+                <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
+            </a>
+        </div>
+    </header>
 
-    <div id="message"></div>
+    <!-- ===============================
+         MAIN CONTENT (No changes needed here)
+         =============================== -->
+    <main class="vote-container">
+        <h1 class="vote-title">Cast your votes for the {{ category['name'] }}</h1>
 
-    <!-- Back to Dashboard button -->
-    <button class="dashboard-btn" onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+        <div class="candidates-container">
+            {% for c in candidates %}
+            <div class="candidate" data-id="{{ c['id'] }}">
+                <div class="candidate-image-wrapper">
+                   <img src="{{ url_for('static', filename='images/' + ('male.png' if c.gender == 'male' else 'female.png')) }}" alt="{{ c['full_name'] or c['username'] }}">
+                </div>
+                <p class="candidate-name">{{ c['full_name'] or c['username'] }}</p>
+            </div>
+            {% endfor %}
+        </div>
 
+        <button class="btn-next" id="next-btn">Next</button>
+    </main>
+
+    <!-- ===============================
+         SCRIPT (UPDATED)
+         =============================== -->
     <script>
-        function castVote(winnerId) {
-            const loserId = {{ candidates[0]['id'] }} === winnerId ? {{ candidates[1]['id'] }} : {{ candidates[0]['id'] }};
-            $.ajax({
-                url: "/vote",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    winner_id: winnerId,
-                    loser_id: loserId,
-                    category_id: {{ category['id'] }}
-                }),
-                success: function(res) {
-                    $("#message").text(res.message);
-                    if (res.status === "success") {
-                        setTimeout(() => {
-                            location.reload();
-                        }, 600);
+        document.addEventListener('DOMContentLoaded', function() {
+            const candidates = document.querySelectorAll('.candidate');
+            const nextBtn = document.getElementById('next-btn');
+            let winnerId = null;
+            let loserId = null;
+
+            candidates.forEach(candidate => {
+                candidate.addEventListener('click', function() {
+                    const clickedId = this.dataset.id;
+
+                    // If a winner is already selected AND the user clicked that same winner again
+                    if (winnerId && winnerId === clickedId) {
+                        // Reset the state to unselect
+                        winnerId = null;
+                        loserId = null;
+                        candidates.forEach(c => {
+                            c.classList.remove('selected', 'not-selected');
+                        });
+                        nextBtn.classList.remove('visible');
+
+                    // If NO winner is selected yet, then select one
+                    } else if (!winnerId) {
+                        winnerId = clickedId;
+                        candidates.forEach(c => {
+                            if (c.dataset.id === winnerId) {
+                                c.classList.add('selected');
+                                loserId = [...candidates].find(other => other !== c).dataset.id;
+                            } else {
+                                c.classList.add('not-selected');
+                            }
+                        });
+                        nextBtn.classList.add('visible');
                     }
-                },
-                error: function(xhr) {
-                    const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || "Something went wrong.";
-                    $("#message").text(msg);
-                    console.error("Vote error:", msg);
+                    // If a winner is selected and the user clicks the OTHER candidate, do nothing.
+                });
+            });
+
+            nextBtn.addEventListener('click', async function() {
+                if (winnerId && loserId) {
+                    try {
+                        const res = await fetch('/vote', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                winner_id: winnerId,
+                                loser_id: loserId,
+                                category_id: {{ category['id'] }}
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            // Reload to get the next pair
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'An error occurred.');
+                        }
+                    } catch (error) {
+                        console.error('Error casting vote:', error);
+                        alert('Could not connect to the server.');
+                    }
                 }
             });
-        }
+        });
     </script>
-
 </body>
 </html>

@@ -17,7 +17,7 @@ function openModal(modal) {
     signupModal.style.display = 'none';
     otpModal.style.display = 'none';
     // Open the desired modal
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 }
 
 // Open modals mutually exclusive
@@ -74,7 +74,7 @@ signupForm.onsubmit = async function(e) {
 
     if(result.status === 'otp_modal'){
         signupModal.style.display = 'none';
-        otpModal.style.display = 'block';
+        otpModal.style.display = 'flex';
 
         // Send OTP in background after modal opens
         fetch('/send_otp_ajax', { method:'POST' })
