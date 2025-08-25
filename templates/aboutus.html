@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - The Social Sort</title>
+    <!-- Google Fonts to match your theme -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to the CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aboutus.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="The Social Sort Logo" class="logo-img">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 class="title">About The Social Sort</h1>
+        
+        <div class="content">
+            <p class="intro">We are a constellation, each name a star seen in a different light. Some shine for their brilliance, others for their warmth. This is a place to see the patterns we form and the lines that are drawn between us.</p>
+
+            <h2>Our Philosophy</h2>
+            <p>The Social Sort was born from a simple idea: social dynamics are complex, beautiful, and often unspoken. We wanted to create a platform that brings these hidden connections to light in a fun and engaging way. By using a sophisticated Elo rating system—the same kind used to rank chess masters—we turn subjective opinions into a dynamic, ever-evolving map of a social group.</p>
+
+            <h2>How It Works</h2>
+            <p>Every vote you cast is more than just a choice; it's a piece of data that helps refine the social fabric. When you choose one person over another in a specific category, you're not just stating a preference. You're contributing to a system that learns and adapts, revealing who we are through the eyes of our peers. It’s a mirror held up to the group, reflecting everything from the class clown to the kindest soul.</p>
+            
+            <h2>Our Commitment</h2>
+            <p>We are committed to creating a respectful and enjoyable experience. The data generated here is a collective story, and we believe in protecting the integrity of that story. We hope you enjoy exploring the unique constellation of your social world.</p>
+            
+            <!-- New Creators Section -->
+            <h2>The Creators</h2>
+            <div class="creators-container">
+                <div class="creator-card">
+                    <img src="{{ url_for('static', filename='images/male.png') }}" alt="Creator Photo">
+                    <p class="creator-name">Prabhu Dharsh Antony</p>
+                </div>
+                <div class="creator-card">
+                    <img src="{{ url_for('static', filename='images/male.png') }}" alt="Creator Photo">
+                    <p class="creator-name">Aravinth S</p>
+                </div>
+            </div>
+
+            <a href="/" class="back-button">Go Back</a>
+        </div>
+    </main>
+
+</body>
+</html>

@@ -264,7 +264,26 @@ def verify_otp_ajax():
 
     session.pop('pending_user')
     return jsonify({'status': 'success', 'message': 'Signup successful! Redirecting to login page...'})
-
+# -----------------------
+# Terms of Service Page
+# -----------------------
+@app.route('/tos')
+def tos_page():
+    # Default gender if no one is logged in
+    user_gender = 'male' 
+    
+    # If a user is logged in, fetch their actual gender
+    if 'user_id' in session:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        if user:
+            user_gender = user['gender']
+            
+    return render_template('tos.html', gender=user_gender)
 
 # -----------------------
 # Admin Login Page
@@ -758,6 +777,35 @@ def vote():
     finally:
         cur.close()
         conn.close()
+        
+# -----------------------
+# About us Route
+# -----------------------
+@app.route('/aboutus')
+def aboutus_page():
+    # Default gender if no one is logged in
+    user_gender = 'male' 
+    
+    # If a user is logged in, fetch their actual gender for the profile icon
+    if 'user_id' in session:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        if user:
+            user_gender = user['gender']
+            
+    return render_template('aboutus.html', gender=user_gender)
+# -----------------------
+# Ascii Route
+# -----------------------
+@app.route('/ascii')
+def ascii_page():
+    # This route will render the new ASCII art page.
+    # It doesn't require user-specific data, so it's simpler.
+    return render_template('ascii.html')
 
 # -----------------------
 # Logout Route

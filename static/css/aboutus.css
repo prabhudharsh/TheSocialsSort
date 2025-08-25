@@ -1,0 +1,131 @@
+/* ===============================
+   GENERAL & FONTS
+   =============================== */
+body {
+    margin: 0;
+    font-family: 'Ubuntu Sans', sans-serif;
+    background-color: #F5F1EC;
+    color: #333;
+    line-height: 1.7;
+}
+
+/* ===============================
+   NAVBAR (Consistent with your theme)
+   =============================== */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #E0D9D1;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+}
+
+.logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* ===============================
+   MAIN CONTENT CONTAINER
+   =============================== */
+.container {
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 0 2rem;
+}
+
+/* ===============================
+   CONTENT STYLING
+   =============================== */
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.content .intro {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    text-align: center;
+    color: #666;
+    margin-bottom: 3rem;
+    line-height: 1.8;
+}
+
+.content h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #E0D9D1;
+    padding-bottom: 0.5rem;
+}
+
+.content p {
+    font-size: 1rem;
+    color: #555;
+}
+
+/* ===============================
+   CREATORS SECTION
+   =============================== */
+.creators-container {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.creator-card img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #E0D9D1;
+    margin-bottom: 1rem;
+}
+
+.creator-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #333;
+}
+
+
+/* ===============================
+   BACK BUTTON
+   =============================== */
+.back-button {
+    display: block;
+    width: fit-content;
+    margin: 3rem auto 0;
+    background-color: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 40px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #333;
+}
