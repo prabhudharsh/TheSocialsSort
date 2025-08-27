@@ -145,6 +145,18 @@ body {
   }
 }
 
+/* --- Animation for Modal --- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 
 /* --- NEW MODAL STYLES --- */
 .modal-overlay {
@@ -168,6 +180,7 @@ body {
   width: 100%;
   max-width: 550px;
   text-align: center;
+  animation: fadeInUp 0.5s ease-out forwards; /* Apply animation */
 }
 
 .modal-header {

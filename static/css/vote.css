@@ -77,6 +77,11 @@ body {
     justify-content: center;
     gap: 50px;
     margin-bottom: 30px;
+    transition: opacity 0.4s ease; /* Added for fade effect */
+}
+
+.candidates-container.fade-out {
+    opacity: 0;
 }
 
 .candidate {
@@ -98,6 +103,12 @@ body {
     object-fit: cover;
     display: block;
     border: 1px solid #E0D9D1;
+    transition: transform 0.5s ease; /* Added for smooth flip */
+}
+
+/* Class to flip the image horizontally */
+.candidate img.flip-h {
+    transform: scaleX(-1);
 }
 
 .candidate-name {

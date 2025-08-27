@@ -24,14 +24,16 @@
 
     <main class="vote-container">
         <h1 class="vote-title">Cast your votes for the {{ category['name'] }}</h1>
-        <!-- New subtitle, hidden by default -->
         <p class="vote-subtitle" id="vote-subtitle"></p>
 
         <div class="candidates-container">
             {% for c in candidates %}
             <div class="candidate" data-id="{{ c['id'] }}">
                 <div class="candidate-image-wrapper">
-                   <img src="{{ url_for('static', filename='images/' + ('male.png' if c.gender == 'male' else 'female.png')) }}" alt="{{ c['full_name'] or c['username'] }}">
+                   <img 
+                     src="{{ url_for('static', filename='images/' + ('male.png' if c.gender == 'male' else 'female.png')) }}" 
+                     alt="{{ c['full_name'] or c['username'] }}"
+                     class="{% if (c.gender == 'female' and loop.index == 1) or (c.gender == 'male' and loop.index == 2) %}flip-h{% endif %}">
                 </div>
                 <p class="candidate-name">{{ c['full_name'] or c['username'] }}</p>
             </div>
@@ -71,9 +73,12 @@
             
             let winnerId = null;
             let loserId = null;
+            let isVoting = false; // Prevent multiple clicks
 
             candidates.forEach(candidate => {
                 candidate.addEventListener('click', function() {
+                    if (isVoting) return;
+
                     winnerId = this.dataset.id;
                     loserId = [...candidates].find(c => c.dataset.id !== winnerId).dataset.id;
 
@@ -91,7 +96,8 @@
             });
 
             nextBtn.addEventListener('click', async function() {
-                if (winnerId && loserId) {
+                if (winnerId && loserId && !isVoting) {
+                    isVoting = true;
                     try {
                         const res = await fetch('/vote', {
                             method: 'POST',
@@ -109,7 +115,6 @@
                             progressLabel.textContent = `${data.votes_in_category} / ${maxVotes} Votes`;
 
                             if (data.unlocked) {
-                                // Update title and show subtitle
                                 voteTitle.textContent = 'All Done!';
                                 voteSubtitle.textContent = 'You can either check your rank or keep voting on other categories.';
                                 voteSubtitle.style.display = 'block';
@@ -119,14 +124,20 @@
                                 nextBtn.style.display = 'none';
                                 finalActions.classList.add('visible');
                             } else {
-                                setTimeout(() => window.location.reload(), 400);
+                                // Animate out, then reload content
+                                candidatesContainer.classList.add('fade-out');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 400); // Match CSS transition duration
                             }
                         } else {
                             alert(data.message || 'An error occurred.');
+                            isVoting = false;
                         }
                     } catch (error) {
                         console.error('Error casting vote:', error);
                         alert('Could not connect to the server.');
+                        isVoting = false;
                     }
                 }
             });
