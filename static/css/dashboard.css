@@ -34,12 +34,6 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
 .logo-text {
   font-family: var(--secondary-font);
   font-size: 1.5rem;
@@ -50,7 +44,7 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: none; /* Removed the border */
+    border: none;
 }
 
 /* --- DASHBOARD PAGE STYLES --- */
@@ -77,28 +71,55 @@ body {
     text-align: left;
 }
 
-.btn-voting {
+/* ===============================
+   NEW: BUTTON GROUP STYLES
+   =============================== */
+.button-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem; /* Space between buttons */
+    margin-top: 2rem;
+}
+
+.btn-voting, .btn-secondary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--button-bg-color);
-    color: var(--button-text-color);
-    border: none;
     border-radius: 30px;
     padding: 0.8rem 2.5rem;
     font-family: var(--secondary-font);
     font-size: 1.2rem;
     font-weight: 400;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 2rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    white-space: nowrap; /* Prevents text wrapping */
+}
+
+.btn-voting {
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
+    border: 1px solid transparent;
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--button-bg-color);
+    border: 1px solid var(--button-bg-color);
 }
 
 .btn-voting:disabled {
     background-color: #6c6c6c;
+    border-color: #6c6c6c;
     cursor: not-allowed;
 }
 
 .btn-voting:hover:not(:disabled) {
     background-color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
 }

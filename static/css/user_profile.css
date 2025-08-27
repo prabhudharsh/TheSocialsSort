@@ -7,8 +7,6 @@
   --text-color: #333333;
   --primary-font: 'Ubuntu Sans', sans-serif;
   --secondary-font: 'Playfair Display', serif;
-  --button-bg-color: #1a1a1a;
-  --button-text-color: #ffffff;
   --card-bg-color: #E0D9D1;
 }
 
@@ -35,12 +33,6 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
 .logo-link {
     text-decoration: none;
     color: inherit;
@@ -52,18 +44,16 @@ body {
   font-weight: 700;
 }
 
-/* ===============================
-   HEADER ACTIONS
-   =============================== */
 .header-actions {
     display: flex;
+    align-items: center;
     gap: 1rem;
 }
 
 .btn-header {
-    font-family: var(--secondary-font); /* Changed font */
-    background-color: var(--button-bg-color);
-    color: var(--button-text-color);
+    font-family: var(--secondary-font);
+    background-color: #1a1a1a;
+    color: #fff;
     border: none;
     border-radius: 8px;
     padding: 0.6rem 1.2rem;
@@ -75,12 +65,16 @@ body {
 }
 
 .btn-header:hover {
-    background-color: #333; /* Darker hover state */
-    opacity: 0.9;
+    background-color: #333;
 }
 
+.profile-icon img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
 
-/* --- PROFILE PAGE STYLES --- */
+/* --- Profile Page Styles --- */
 .profile-container {
     max-width: 800px;
     margin: 2rem auto;
@@ -121,10 +115,6 @@ body {
     margin-bottom: 2rem;
 }
 
-/* ===============================
-   STATS & PROGRESS STYLES
-   =============================== */
-
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -136,17 +126,7 @@ body {
     background-color: var(--card-bg-color);
     border-radius: 15px;
     padding: 25px;
-    opacity: 0; /* Initially hidden for animation */
-    animation: fadeInUp 0.5s ease-out forwards;
 }
-
-/* Staggered animation delay for each card */
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-.stat-card:nth-child(4) { animation-delay: 0.4s; }
-/* Add more if you expect more than 4 categories */
-
 
 .category-title {
     font-family: var(--secondary-font);
@@ -156,7 +136,7 @@ body {
     font-weight: 700;
 }
 
-.rank-unlocked {
+.rank-unlocked, .rank-locked {
     display: block;
 }
 
@@ -167,67 +147,21 @@ body {
     margin-bottom: 8px;
 }
 
-.stat-label {
+.stat-label, .stat-value {
     font-size: 1rem;
-    color: var(--text-color);
     font-family: var(--primary-font);
-    text-transform: none;
 }
 
 .stat-value {
-    font-size: 1rem;
     font-weight: 700;
-    font-family: var(--primary-font);
-}
-
-.rank-locked {
-    padding: 5px 0;
 }
 
 .unlock-text {
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #666;
-    margin-bottom: 10px;
     text-align: center;
 }
 
-.progress-bar-container {
-    background-color: #F5F1EB;
-    border-radius: 5px;
-    height: 10px;
-    width: 100%;
-    margin: 0 auto 5px auto;
-}
-
-.progress-bar-fill {
-    background-color: var(--button-bg-color);
-    height: 100%;
-    border-radius: 5px;
-    transition: width 0.4s ease;
-}
-
-.progress-label {
-    font-size: 0.8rem;
-    color: #888;
-    text-align: center;
-}
-
-/* ===============================
-   ANIMATIONS
-   =============================== */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-
-/* --- Responsive adjustments --- */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: 1fr;

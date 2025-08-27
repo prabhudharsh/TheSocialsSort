@@ -16,10 +16,15 @@ body {
    =============================== */
 .navbar {
     display: flex;
-    justify-content: space-between; /* This aligns items to the ends */
+    justify-content: space-between;
     align-items: center;
     padding: 1.5rem 2rem;
     border-bottom: 1px solid #E0D9D1;
+}
+
+.logo-link {
+    text-decoration: none;
+    color: inherit;
 }
 
 .logo-text {
@@ -36,7 +41,7 @@ body {
 }
 
 /* ===============================
-   MAIN CONTENT (No Changes Below)
+   MAIN CONTENT
    =============================== */
 .vote-container {
     flex-grow: 1;
@@ -52,7 +57,16 @@ body {
     font-family: 'Playfair Display', serif;
     font-size: 1.75rem;
     font-weight: 400;
+    margin-bottom: 10px;
+}
+
+.vote-subtitle {
+    font-family: 'Ubuntu Sans', sans-serif;
+    font-size: 1.1rem;
+    color: #555;
+    margin-top: 0;
     margin-bottom: 40px;
+    display: none; /* Hidden by default */
 }
 
 /* ===============================
@@ -62,7 +76,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 50px;
-    margin-bottom: 50px;
+    margin-bottom: 30px;
 }
 
 .candidate {
@@ -93,7 +107,6 @@ body {
     margin: 0;
 }
 
-/* --- Selection Animations --- */
 .candidate.selected {
     transform: scale(1.05);
 }
@@ -103,30 +116,85 @@ body {
 }
 
 /* ===============================
-   NEXT BUTTON
+   PROGRESS BAR SECTION
    =============================== */
-.btn-next {
-    font-family: 'Ubuntu Sans', sans-serif;
+.progress-section {
+    width: 100%;
+    max-width: 350px;
+    margin-bottom: 30px;
+}
+
+.progress-bar-container {
+    background-color: #E0D9D1;
+    border-radius: 5px;
+    height: 10px;
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+    background-color: #1a1a1a;
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.4s ease-in-out;
+}
+
+.progress-label {
+    font-size: 0.9rem;
+    color: #888;
+    margin: 0;
+}
+
+/* ===============================
+   ACTION BUTTONS
+   =============================== */
+.button-wrapper {
+    height: 48px; /* Prevents layout shift */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-next, .btn-rank, .btn-categories, .btn-back {
+    font-family: 'Playfair Display', serif;
     background-color: #1a1a1a;
     color: #fff;
     border: none;
     border-radius: 10px;
-    padding: 12px 60px;
+    padding: 12px 30px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(20px);
+    text-decoration: none;
 }
 
-.btn-next.visible {
+.btn-next {
+    padding: 12px 60px;
+    font-size: 1.1rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    display: none;
+}
+
+.final-actions {
+    display: none;
+    gap: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.btn-next.visible, .final-actions.visible {
+    display: flex;
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
 }
 
-.btn-next:hover {
+.btn-next:hover, .btn-rank:hover, .btn-categories:hover, .btn-back:hover {
     background-color: #333;
 }

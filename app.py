@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import smtplib
 from email.message import EmailMessage
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from itertools import combinations
 
 load_dotenv()
 app = Flask(__name__)
@@ -30,6 +30,7 @@ EMAIL_REGEX = re.compile(r'^[\w\.-]+@[\w\.-]+\.\w+$')
 MIN_PASSWORD_LENGTH = 6
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 5
+MAX_VOTES = 10 # Global constant for max votes
 
 # -----------------------
 # Database connection
@@ -39,7 +40,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Voting categories 
+# Voting categories
 def get_categories():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -104,20 +105,17 @@ def login_ajax():
     username = data.get('username')
     password_input = data.get('password')
 
-    # Initialize failed attempts tracking
     if 'login_attempts' not in session:
         session['login_attempts'] = {}
 
     attempts = session['login_attempts'].get(username, {'count': 0, 'lock_until': None})
 
-    # Check lockout
     now = datetime.now()
     lock_until = attempts.get('lock_until')
     if lock_until and now < lock_until:
         remaining = int((lock_until - now).total_seconds() // 60) + 1
         return jsonify({'status': 'danger', 'message': f'Too many failed attempts. Try again in {remaining} minutes.'})
 
-    # Check credentials
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT id, password, is_verified FROM users WHERE username = ?", (username,))
@@ -126,7 +124,6 @@ def login_ajax():
     conn.close()
 
     if user and check_password_hash(user['password'], password_input):
-        # Successful login -> reset attempts
         session['login_attempts'][username] = {'count': 0, 'lock_until': None}
         session['user_id'] = user['id']
         session['username'] = username
@@ -134,11 +131,10 @@ def login_ajax():
             return jsonify({'status': 'warning', 'message': 'Please verify your email first.'})
         return jsonify({'status': 'success', 'message': 'Logged in successfully.'})
     else:
-        # Failed login
         attempts['count'] += 1
         if attempts['count'] >= MAX_FAILED_ATTEMPTS:
             attempts['lock_until'] = now + timedelta(minutes=LOCKOUT_MINUTES)
-            attempts['count'] = 0  # reset count after lock
+            attempts['count'] = 0
         session['login_attempts'][username] = attempts
         return jsonify({'status': 'danger', 'message': 'Invalid username or password.'})
 
@@ -152,14 +148,12 @@ def signup_ajax():
     email = data.get('email')
     password = data.get('password')
 
-    # Input validation
     error = validate_signup(username, email, password)
     if error:
         return jsonify({'status': 'warning', 'message': error})
 
     conn = get_db_connection()
     cur = conn.cursor()
-    # Check username/email uniqueness
     cur.execute("SELECT id FROM users WHERE username = ?", (username,))
     if cur.fetchone():
         cur.close()
@@ -175,7 +169,6 @@ def signup_ajax():
     cur.close()
     conn.close()
 
-    # Store pending user with OTP + timestamp
     otp = str(random.randint(100000, 999999))
     session['pending_user'] = {
         'username': username,
@@ -196,7 +189,6 @@ def send_otp_ajax():
     if not pending:
         return jsonify({'status': 'error', 'message': 'Session expired. Please try again.'})
 
-    # Refresh OTP if expired
     now = int(time.time())
     created = pending.get('otp_created_at', 0)
     if now - created > OTP_TTL_SECONDS:
@@ -223,7 +215,6 @@ def verify_otp_ajax():
     if not pending:
         return jsonify({'status': 'error', 'message': 'Session expired. Please try again.'})
 
-    # Check OTP expiry
     now = int(time.time())
     created = pending.get('otp_created_at', 0)
     if now - created > OTP_TTL_SECONDS:
@@ -233,7 +224,6 @@ def verify_otp_ajax():
     if entered_otp != pending['otp']:
         return jsonify({'status': 'danger', 'message': 'Invalid OTP. Please try again.'})
 
-    # Persist user with hashed password
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -242,9 +232,8 @@ def verify_otp_ajax():
             "INSERT INTO users (username, email, password, is_verified) VALUES (?, ?, ?, ?)",
             (pending['username'], pending['email'], password_hash, 1)
         )
-        user_id = cur.lastrowid  # ✅ new user’s ID
+        user_id = cur.lastrowid
 
-        # Initialize Elo ratings for all categories
         cur.execute("SELECT id FROM categories")
         categories = cur.fetchall()
         for category in categories:
@@ -264,15 +253,13 @@ def verify_otp_ajax():
 
     session.pop('pending_user')
     return jsonify({'status': 'success', 'message': 'Signup successful! Redirecting to login page...'})
+
 # -----------------------
 # Terms of Service Page
 # -----------------------
 @app.route('/tos')
 def tos_page():
-    # Default gender if no one is logged in
     user_gender = 'male' 
-    
-    # If a user is logged in, fetch their actual gender
     if 'user_id' in session:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -286,9 +273,8 @@ def tos_page():
     return render_template('tos.html', gender=user_gender)
 
 # -----------------------
-# Admin Login Page
+# Admin Routes
 # -----------------------
-
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin'):
@@ -310,20 +296,15 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-# -----------------------
-# Admin Dashboard
-# -----------------------
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
 
     global VOTING_START, FORCE_START
-
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Handle POST for updating voting time / force start
     if request.method == 'POST':
         data = request.get_json() or {}
         if 'new_time' in data:
@@ -336,15 +317,11 @@ def admin_dashboard():
         else:
             return jsonify({'status': 'error', 'message': 'Invalid action.'})
 
-    # Fetch all users
     cur.execute("SELECT id, username, full_name, email, gender FROM users")
     users = cur.fetchall()
-
-    # Fetch all categories
     cur.execute("SELECT id, name FROM categories")
     categories = cur.fetchall()
 
-    # Build leaderboard per category
     leaderboards = {}
     for cat in categories:
         cat_id = cat['id']
@@ -361,28 +338,23 @@ def admin_dashboard():
         """, (cat_id, cat_id))
         leaderboard = cur.fetchall()
 
-        # Assign rank numbers
         rank = 1
         prev_rating = None
         for i, row in enumerate(leaderboard):
             rating = row['rating']
             if prev_rating is not None and rating < prev_rating:
                 rank = i + 1
-            row_dict = dict(row)  # Convert sqlite3.Row to dict to allow assignment
+            row_dict = dict(row)
             row_dict['rank'] = rank
             leaderboard[i] = row_dict
             prev_rating = rating
-
         leaderboards[cat['name']] = leaderboard
 
     cur.close()
     conn.close()
-
     return render_template('admin_dashboard.html', users=users, categories=categories,
                            leaderboards=leaderboards, voting_start=VOTING_START)
-# -----------------------
-# Admin Categories Management
-# -----------------------
+
 @app.route('/admin_categories', methods=['GET', 'POST'])
 def admin_categories():
     if not session.get('admin'):
@@ -394,18 +366,13 @@ def admin_categories():
     if request.method == 'POST':
         data = request.get_json(silent=True) or {}
         action = data.get('action')
-
         try:
             if action == 'add':
                 new_name = data.get('name', '').strip()
                 if not new_name:
                     return jsonify({'status': 'error', 'message': 'Category name cannot be empty.'}), 400
-
-                # Add category
                 cur.execute("INSERT INTO categories (name) VALUES (?)", (new_name,))
                 cat_id = cur.lastrowid
-
-                # Initialize Elo ratings for all users
                 cur.execute("SELECT id FROM users")
                 users = cur.fetchall()
                 for user in users:
@@ -413,55 +380,43 @@ def admin_categories():
                         "INSERT INTO elo_ratings (user_id, category_id, rating) VALUES (?, ?, ?)",
                         (user['id'], cat_id, 1200)
                     )
-
                 conn.commit()
                 return jsonify({'status': 'success', 'message': f'Category "{new_name}" added.'})
-
             elif action == 'rename':
                 cat_id = data.get('id')
                 new_name = data.get('name', '').strip()
                 if not cat_id or not new_name:
                     return jsonify({'status': 'error', 'message': 'Invalid category ID or name.'}), 400
-
                 cur.execute("UPDATE categories SET name=? WHERE id=?", (new_name, cat_id))
                 conn.commit()
                 return jsonify({'status': 'success', 'message': 'Category renamed.'})
-
             elif action == 'delete':
                 cat_id = data.get('id')
                 if not cat_id:
                     return jsonify({'status': 'error', 'message': 'Invalid category ID.'}), 400
-
                 cur.execute("DELETE FROM categories WHERE id=?", (cat_id,))
                 cur.execute("DELETE FROM elo_ratings WHERE category_id=?", (cat_id,))
                 cur.execute("DELETE FROM votes WHERE category_id=?", (cat_id,))
                 conn.commit()
                 return jsonify({'status': 'success', 'message': 'Category deleted.'})
-
             else:
                 return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
-
         except sqlite3.Error as e:
             return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
 
-    # GET: return list of categories
     cur.execute("SELECT id, name FROM categories")
     categories = cur.fetchall()
-
     cur.close()
     conn.close()
     return render_template('admin_categories.html', categories=categories)
 
-# -----------------------
-# Admin Logout
-# -----------------------
 @app.route('/admin_logout')
 def admin_logout():
     session.pop('admin', None)
     return redirect(url_for('admin_login'))
 
 # -----------------------
-# Dashboard
+# Main App Routes
 # -----------------------
 @app.route('/dashboard')
 def dashboard():
@@ -480,17 +435,104 @@ def dashboard():
     if not user['gender']:
         return redirect(url_for('select_gender'))
 
-    # Calculate time left for universal countdown
     now = datetime.now()
     time_left = int((VOTING_START - now).total_seconds())
     if time_left < 0:
         time_left = 0
 
-    # Render dashboard template with universal countdown AND the user's gender
     return render_template('dashboard.html', username=session['username'], time_left=time_left, gender=user['gender'])
-# -----------------------
-# Complete Profile
-# -----------------------
+
+# Add this new route to your app.py file
+
+@app.route('/user_list')
+def user_list():
+    if 'user_id' not in session:
+        return redirect(url_for('landing'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Fetch the current user's gender for the profile icon in the navbar
+    cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+    current_user = cur.fetchone()
+    user_gender = current_user['gender'] if current_user else 'male'
+    
+    # Fetch all users to display on the page
+    cur.execute("SELECT id, username, full_name, bio, gender FROM users")
+    users = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    # Render the template, passing both the list of all users and the current user's gender
+    return render_template('user_list.html', users=users, gender=user_gender)
+
+# Add this new route to your app.py file
+
+@app.route('/user/<username>')
+def user_profile(username):
+    if 'user_id' not in session:
+        return redirect(url_for('landing'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Fetch the data for the user whose profile is being viewed
+    cur.execute("SELECT id, username, full_name, bio, gender FROM users WHERE username=?", (username,))
+    user = cur.fetchone()
+
+    # If the user doesn't exist, return a 404 error
+    if not user:
+        return "User not found", 404
+
+    # Fetch the gender of the person viewing the profile for the navbar icon
+    cur.execute("SELECT gender FROM users WHERE id=?", (session['user_id'],))
+    viewer = cur.fetchone()
+    viewer_gender = viewer['gender'] if viewer else 'male'
+
+    # Fetch all categories to calculate ranks
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+
+    profile_data = []
+    for cat in categories:
+        # Check how many times the profile owner has voted in this category
+        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
+        votes_count = cur.fetchone()['cnt']
+
+        # Only show the rank if they have completed the required number of votes
+        if votes_count >= MAX_VOTES:
+            cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
+            rating_row = cur.fetchone()
+            rating = rating_row['rating'] if rating_row else 1200
+
+            # Calculate the user's rank in this category
+            cur.execute("""
+                SELECT COUNT(*)+1 as rank
+                FROM elo_ratings
+                WHERE category_id=? AND rating > ?
+            """, (cat['id'], rating))
+            rank = cur.fetchone()['rank']
+
+            profile_data.append({
+                'category': cat['name'],
+                'rating': round(rating, 1),
+                'rank': rank
+            })
+        else:
+            # If they haven't voted enough, the rank is locked
+            profile_data.append({
+                'category': cat['name'],
+                'rating': None,
+                'rank': None
+            })
+
+    cur.close()
+    conn.close()
+
+    # Render the user_profile template with all the necessary data
+    return render_template('user_profile.html', user=user, profile_data=profile_data, viewer_gender=viewer_gender)
+
 @app.route('/complete_profile', methods=['GET', 'POST'])
 def complete_profile():
     if 'user_id' not in session:
@@ -516,12 +558,8 @@ def complete_profile():
 
         return jsonify({'status': 'success', 'redirect': '/select_gender'})
 
-    # GET request: return HTML template
     return render_template('complete_profile.html')
 
-# -----------------------
-# Select Gender
-# -----------------------
 @app.route('/select_gender', methods=['GET', 'POST'])
 def select_gender():
     if 'user_id' not in session:
@@ -545,12 +583,8 @@ def select_gender():
 
         return jsonify({'status': 'success', 'redirect': '/dashboard'})
 
-    # GET request: return HTML template
     return render_template('select_gender.html')
 
-# -----------------------
-# Profile
-# -----------------------
 @app.route('/profile')
 def profile():
     if 'username' not in session:
@@ -559,27 +593,22 @@ def profile():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Get basic user info (added gender here ✅)
     cur.execute("SELECT id, username, full_name, bio, gender FROM users WHERE id=?", (session['user_id'],))
     user = cur.fetchone()
 
-    # Get categories
     cur.execute("SELECT id, name FROM categories")
     categories = cur.fetchall()
 
     profile_data = []
     for cat in categories:
-        # Count votes by this user in this category
         cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
         votes_count = cur.fetchone()['cnt']
 
-        if votes_count >= 15:
-            # Get rating
+        if votes_count >= MAX_VOTES:
             cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
             rating_row = cur.fetchone()
             rating = rating_row['rating'] if rating_row else 1200
 
-            # Get rank
             cur.execute("""
                 SELECT COUNT(*)+1 as rank
                 FROM elo_ratings
@@ -605,37 +634,42 @@ def profile():
     cur.close()
     conn.close()
 
-    return render_template('profile.html', user=user, profile_data=profile_data)
-
-# -----------------------
-# category
-# -----------------------
+    return render_template('profile.html', user=user, profile_data=profile_data, MAX_VOTES=MAX_VOTES)
 
 @app.route('/category')
 def category():
     if 'username' not in session:
         return redirect(url_for('landing'))
 
-    categories = get_categories()
-    return render_template('category.html', categories=categories)
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-# -----------------------
-# Category detail page route
-# -----------------------
+    # Fetch user's gender to pass to the template
+    cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+    user = cur.fetchone()
+    user_gender = user['gender'] if user else 'male'
+    
+    cur.execute("SELECT id, name FROM categories")
+    categories = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return render_template('category.html', categories=categories, gender=user_gender)
+
 @app.route('/category/<int:cat_id>')
 def category_page(cat_id):
-    if 'user_id' not in session: # It's safer to check for user_id
+    if 'user_id' not in session:
         return redirect(url_for('landing'))
 
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # 1. ADDED: Get the logged-in user's gender for the profile icon
-    cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
+    user_id = session['user_id']
+    cur.execute("SELECT gender FROM users WHERE id = ?", (user_id,))
     user = cur.fetchone()
-    user_gender = user['gender'] if user else 'male' # Default to 'male' if not found
+    user_gender = user['gender'] if user else 'male'
 
-    # Check if category exists (Your code was already correct here)
     cur.execute("SELECT id, name FROM categories WHERE id = ?", (cat_id,))
     category = cur.fetchone()
     if not category:
@@ -643,34 +677,57 @@ def category_page(cat_id):
         conn.close()
         return "Invalid category.", 404
 
-    # 2. MODIFIED: Added 'u.gender' to your query to get each candidate's gender
+    # Fetch current vote count for the progress bar
+    cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user_id, cat_id))
+    votes_count = cur.fetchone()['cnt']
+
+    cur.execute("""
+        SELECT winner_id, loser_id 
+        FROM votes 
+        WHERE voter_id = ? AND category_id = ?
+    """, (user_id, cat_id))
+    voted_pairs_raw = cur.fetchall()
+    
+    voted_pairs = set()
+    for pair in voted_pairs_raw:
+        sorted_pair = tuple(sorted((pair['winner_id'], pair['loser_id'])))
+        voted_pairs.add(sorted_pair)
+
     cur.execute("""
         SELECT u.id, u.username, u.full_name, u.gender, e.rating
         FROM users u
         JOIN elo_ratings e ON u.id = e.user_id
-        WHERE e.category_id = ?
-          AND u.id != ?
+        WHERE e.category_id = ? AND u.id != ?
         ORDER BY RANDOM()
-        LIMIT 2
-    """, (cat_id, session['user_id']))
-    candidates = cur.fetchall()
-
+        LIMIT 20 
+    """, (cat_id, user_id))
+    
+    potential_candidates = cur.fetchall()
     cur.close()
     conn.close()
 
-    if len(candidates) < 2:
-        # A more descriptive message
+    if len(potential_candidates) < 2:
         return "Not enough rated users in this category to vote.", 400
 
-    # 3. MODIFIED: Added 'gender=user_gender' to send the logged-in user's gender to the HTML
+    candidates = None
+    for p1, p2 in combinations(potential_candidates, 2):
+        current_pair = tuple(sorted((p1['id'], p2['id'])))
+        if current_pair not in voted_pairs:
+            candidates = [p1, p2]
+            break
+
+    if not candidates:
+        return render_template('all_voted.html', 
+                               category=category, 
+                               gender=user_gender)
+
     return render_template('vote.html', 
                            category=category, 
                            candidates=candidates, 
-                           gender=user_gender)
+                           gender=user_gender,
+                           votes_count=votes_count,
+                           MAX_VOTES=MAX_VOTES)
 
-# -----------------------
-# Voting Page
-# -----------------------
 @app.route('/vote', methods=['POST'])
 def vote():
     if 'user_id' not in session:
@@ -690,43 +747,25 @@ def vote():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # Get the current user's gender
-        cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
-        user = cur.fetchone()
-        user_gender = user['gender'] if user else None
-
-        # Validate category
         cur.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,))
         if not cur.fetchone():
             return jsonify({'status': 'error', 'message': 'Invalid category.'}), 404
-
-        # Validate users exist
         cur.execute("SELECT 1 FROM users WHERE id = ?", (winner_id,))
         if not cur.fetchone():
             return jsonify({'status': 'error', 'message': 'Invalid winner user.'}), 404
-
         cur.execute("SELECT 1 FROM users WHERE id = ?", (loser_id,))
         if not cur.fetchone():
             return jsonify({'status': 'error', 'message': 'Invalid loser user.'}), 404
 
-        # Check current vote count for this voter in this category
         cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?",
                     (session['user_id'], category_id))
         votes_count = cur.fetchone()['cnt']
-        if votes_count >= 20:
-            return jsonify({'status': 'error', 'message': 'Max 20 votes allowed per category.'}), 403
+        if votes_count >= MAX_VOTES:
+            return jsonify({'status': 'error', 'message': f'Max {MAX_VOTES} votes allowed per category.'}), 403
 
-        # Ensure Elo rows exist (initialize to 1200 if missing)
-        cur.execute("""
-            INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating)
-            VALUES (?, ?, 1200)
-        """, (winner_id, category_id))
-        cur.execute("""
-            INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating)
-            VALUES (?, ?, 1200)
-        """, (loser_id, category_id))
+        cur.execute("INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating) VALUES (?, ?, 1200)", (winner_id, category_id))
+        cur.execute("INSERT OR IGNORE INTO elo_ratings (user_id, category_id, rating) VALUES (?, ?, 1200)", (loser_id, category_id))
 
-        # Fetch current ratings
         cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (winner_id, category_id))
         wr = cur.fetchone()
         cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (loser_id, category_id))
@@ -735,41 +774,25 @@ def vote():
         if not wr or not lr:
             return jsonify({'status': 'error', 'message': 'Ratings not initialized.'}), 500
 
-        winner_rating = float(wr['rating'])
-        loser_rating  = float(lr['rating'])
-
-        # Elo update
+        winner_rating, loser_rating = float(wr['rating']), float(lr['rating'])
         K = 32
         expected_winner = 1.0 / (1.0 + 10 ** ((loser_rating - winner_rating) / 400.0))
-        expected_loser  = 1.0 - expected_winner
         new_winner_rating = round(winner_rating + K * (1 - expected_winner), 1)
-        new_loser_rating  = round(loser_rating  + K * (0 - expected_loser), 1)
+        new_loser_rating  = round(loser_rating  + K * (0 - (1 - expected_winner)), 1)
 
-        # Save ratings
-        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?",
-                    (new_winner_rating, winner_id, category_id))
-        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?",
-                    (new_loser_rating, loser_id, category_id))
+        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?", (new_winner_rating, winner_id, category_id))
+        cur.execute("UPDATE elo_ratings SET rating=? WHERE user_id=? AND category_id=?", (new_loser_rating, loser_id, category_id))
+        cur.execute("INSERT INTO votes (voter_id, winner_id, loser_id, category_id, timestamp) VALUES (?, ?, ?, ?, datetime('now'))",
+                    (session['user_id'], winner_id, loser_id, category_id))
 
-        # Record vote
-        cur.execute("""
-            INSERT INTO votes (voter_id, winner_id, loser_id, category_id, timestamp)
-            VALUES (?, ?, ?, ?, datetime('now'))
-        """, (session['user_id'], winner_id, loser_id, category_id))
-
-        # Update votes count after insertion
-        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?",
-                    (session['user_id'], category_id))
-        votes_count = cur.fetchone()['cnt']
-
+        votes_count += 1
         conn.commit()
 
         return jsonify({
             'status': 'success',
             'message': 'Vote recorded',
             'votes_in_category': votes_count,
-            'unlocked': votes_count >= 15,  # unlock if 15 or more votes
-            'gender': user_gender # Added gender to the response
+            'unlocked': votes_count >= MAX_VOTES
         })
     except Exception as e:
         conn.rollback()
@@ -778,15 +801,9 @@ def vote():
         cur.close()
         conn.close()
         
-# -----------------------
-# About us Route
-# -----------------------
 @app.route('/aboutus')
 def aboutus_page():
-    # Default gender if no one is logged in
     user_gender = 'male' 
-    
-    # If a user is logged in, fetch their actual gender for the profile icon
     if 'user_id' in session:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -796,28 +813,16 @@ def aboutus_page():
         conn.close()
         if user:
             user_gender = user['gender']
-            
     return render_template('aboutus.html', gender=user_gender)
-# -----------------------
-# Ascii Route
-# -----------------------
+
 @app.route('/ascii')
 def ascii_page():
-    # This route will render the new ASCII art page.
-    # It doesn't require user-specific data, so it's simpler.
     return render_template('ascii.html')
 
-# -----------------------
-# Logout Route
-# -----------------------
 @app.route('/logout')
 def logout():
-    session.clear()  # Clears all session data (user_id, username, admin, etc.)
-    return redirect(url_for('landing'))  # Redirect to your landing page
+    session.clear()
+    return redirect(url_for('landing'))
 
-
-# -----------------------
-# Run app
-# -----------------------
 if __name__ == '__main__':
     app.run(debug=True)

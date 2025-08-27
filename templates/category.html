@@ -17,7 +17,9 @@
          =============================== -->
     <header class="navbar">
         <div class="logo-container">
-            <span class="logo-text">The Social Sort</span>
+            <a href="{{ url_for('dashboard') }}" class="logo-link">
+                <span class="logo-text">The Social Sort</span>
+            </a>
         </div>
         <div class="profile-icon">
             <a href="/profile">
@@ -57,13 +59,10 @@
 
             categoryList.addEventListener('click', function(e) {
                 if (e.target && e.target.matches('li.category-item')) {
-                    // Remove 'selected' from any previously selected item
                     const currentlySelected = categoryList.querySelector('.selected');
                     if (currentlySelected) {
                         currentlySelected.classList.remove('selected');
                     }
-
-                    // Add 'selected' to the clicked item and enable the button
                     e.target.classList.add('selected');
                     selectedCategoryId = e.target.dataset.catId;
                     nextBtn.disabled = false;

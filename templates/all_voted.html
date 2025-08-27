@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voting Complete - {{ category['name'] }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
+</head>
+<body>
+    <!-- ===============================
+         HEADER (FIXED)
+         =============================== -->
+    <header class="navbar">
+        <div class="logo-container">
+            <span class="logo-text">The Social Sort</span>
+        </div>
+        <div class="profile-icon">
+            <a href="/profile">
+                <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
+            </a>
+        </div>
+    </header>
+
+    <!-- ===============================
+         MAIN CONTENT
+         =============================== -->
+    <main class="vote-container">
+        <div class="message-container">
+            <h1 class="vote-title">All Votes Cast!</h1>
+            <p class="message-subtitle">
+                You've voted on all available pairs in the <br>
+                "{{ category['name'] }}" category. Check back later for new users!
+            </p>
+            <!-- UPDATED: Changed from a link to a button -->
+            <button class="btn-back" onclick="window.location.href='{{ url_for('category') }}'">Back to Categories</button>
+        </div>
+    </main>
+</body>
+</html>

@@ -9,13 +9,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
 </head>
 <body>
-    <!-- ===============================
-         HEADER (FIXED)
-         =============================== -->
     <header class="navbar">
-        <!-- Simplified structure for correct alignment -->
         <div class="logo-container">
-            <span class="logo-text">The Social Sort</span>
+            <a href="{{ url_for('dashboard') }}" class="logo-link">
+                <span class="logo-text">The Social Sort</span>
+            </a>
         </div>
         <div class="profile-icon">
             <a href="/profile">
@@ -24,11 +22,10 @@
         </div>
     </header>
 
-    <!-- ===============================
-         MAIN CONTENT (No changes needed here)
-         =============================== -->
     <main class="vote-container">
         <h1 class="vote-title">Cast your votes for the {{ category['name'] }}</h1>
+        <!-- New subtitle, hidden by default -->
+        <p class="vote-subtitle" id="vote-subtitle"></p>
 
         <div class="candidates-container">
             {% for c in candidates %}
@@ -41,47 +38,55 @@
             {% endfor %}
         </div>
 
-        <button class="btn-next" id="next-btn">Next</button>
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div id="progress-bar-fill" class="progress-bar-fill" style="width: {{ (votes_count / MAX_VOTES) * 100 }}%;"></div>
+            </div>
+            <p id="progress-label" class="progress-label">{{ votes_count }} / {{ MAX_VOTES }} Votes</p>
+        </div>
+        
+        <div class="button-wrapper">
+            <button class="btn-next" id="next-btn">Next</button>
+            <div class="final-actions" id="final-actions">
+                <button class="btn-rank" id="rank-btn" onclick="window.location.href='{{ url_for('profile') }}'">Check Rank</button>
+                <button class="btn-categories" id="categories-btn" onclick="window.location.href='{{ url_for('category') }}'">Categories</button>
+            </div>
+        </div>
     </main>
 
-    <!-- ===============================
-         SCRIPT (UPDATED)
-         =============================== -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const voteTitle = document.querySelector('.vote-title');
+            const voteSubtitle = document.getElementById('vote-subtitle');
+            const candidatesContainer = document.querySelector('.candidates-container');
             const candidates = document.querySelectorAll('.candidate');
             const nextBtn = document.getElementById('next-btn');
+            const finalActions = document.getElementById('final-actions');
+            const progressSection = document.querySelector('.progress-section');
+            const progressBarFill = document.getElementById('progress-bar-fill');
+            const progressLabel = document.getElementById('progress-label');
+            
+            const maxVotes = parseInt('{{ MAX_VOTES }}', 10);
+            const categoryId = parseInt('{{ category["id"] }}', 10);
+            
             let winnerId = null;
             let loserId = null;
 
             candidates.forEach(candidate => {
                 candidate.addEventListener('click', function() {
-                    const clickedId = this.dataset.id;
+                    winnerId = this.dataset.id;
+                    loserId = [...candidates].find(c => c.dataset.id !== winnerId).dataset.id;
 
-                    // If a winner is already selected AND the user clicked that same winner again
-                    if (winnerId && winnerId === clickedId) {
-                        // Reset the state to unselect
-                        winnerId = null;
-                        loserId = null;
-                        candidates.forEach(c => {
-                            c.classList.remove('selected', 'not-selected');
-                        });
-                        nextBtn.classList.remove('visible');
-
-                    // If NO winner is selected yet, then select one
-                    } else if (!winnerId) {
-                        winnerId = clickedId;
-                        candidates.forEach(c => {
-                            if (c.dataset.id === winnerId) {
-                                c.classList.add('selected');
-                                loserId = [...candidates].find(other => other !== c).dataset.id;
-                            } else {
-                                c.classList.add('not-selected');
-                            }
-                        });
-                        nextBtn.classList.add('visible');
-                    }
-                    // If a winner is selected and the user clicks the OTHER candidate, do nothing.
+                    candidates.forEach(c => {
+                        c.classList.remove('selected', 'not-selected');
+                        if (c.dataset.id === winnerId) {
+                            c.classList.add('selected');
+                        } else {
+                            c.classList.add('not-selected');
+                        }
+                    });
+                    
+                    nextBtn.classList.add('visible');
                 });
             });
 
@@ -94,13 +99,28 @@
                             body: JSON.stringify({
                                 winner_id: winnerId,
                                 loser_id: loserId,
-                                category_id: {{ category['id'] }}
+                                category_id: categoryId
                             })
                         });
                         const data = await res.json();
                         if (data.status === 'success') {
-                            // Reload to get the next pair
-                            window.location.reload();
+                            const percentage = (data.votes_in_category / maxVotes) * 100;
+                            progressBarFill.style.width = percentage + '%';
+                            progressLabel.textContent = `${data.votes_in_category} / ${maxVotes} Votes`;
+
+                            if (data.unlocked) {
+                                // Update title and show subtitle
+                                voteTitle.textContent = 'All Done!';
+                                voteSubtitle.textContent = 'You can either check your rank or keep voting on other categories.';
+                                voteSubtitle.style.display = 'block';
+
+                                candidatesContainer.style.display = 'none';
+                                progressSection.style.display = 'none';
+                                nextBtn.style.display = 'none';
+                                finalActions.classList.add('visible');
+                            } else {
+                                setTimeout(() => window.location.reload(), 400);
+                            }
                         } else {
                             alert(data.message || 'An error occurred.');
                         }

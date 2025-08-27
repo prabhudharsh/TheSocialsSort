@@ -1,0 +1,146 @@
+/* --- Google Font Imports --- */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap');
+
+/* --- CSS Variables --- */
+:root {
+  --bg-color: #F5F1EB;
+  --text-color: #333333;
+  --primary-font: 'Ubuntu Sans', sans-serif;
+  --secondary-font: 'Playfair Display', serif;
+}
+
+/* --- General Body & Reset --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--primary-font);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+/* --- Navbar Styling --- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #ddd;
+}
+
+/* UPDATED: Styles to make the link look like the logo text */
+.logo-link {
+    text-decoration: none; /* Removes the underline */
+    color: inherit; /* Makes the text color the same as the rest of the navbar text */
+}
+
+.logo-text {
+  font-family: var(--secondary-font);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.profile-icon img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+/* --- User List Styles --- */
+.user-list-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
+
+.user-list-title {
+    font-family: var(--secondary-font);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.user-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 15px;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.user-card-link:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Staggered animation delays */
+.user-card-link:nth-child(1) { animation-delay: 0.1s; }
+.user-card-link:nth-child(2) { animation-delay: 0.2s; }
+.user-card-link:nth-child(3) { animation-delay: 0.3s; }
+.user-card-link:nth-child(4) { animation-delay: 0.4s; }
+.user-card-link:nth-child(5) { animation-delay: 0.5s; }
+.user-card-link:nth-child(6) { animation-delay: 0.6s; }
+.user-card-link:nth-child(7) { animation-delay: 0.7s; }
+.user-card-link:nth-child(8) { animation-delay: 0.8s; }
+.user-card-link:nth-child(9) { animation-delay: 0.9s; }
+.user-card-link:nth-child(10) { animation-delay: 1.0s; }
+.user-card-link:nth-child(11) { animation-delay: 1.1s; }
+.user-card-link:nth-child(12) { animation-delay: 1.2s; }
+.user-card-link:nth-child(13) { animation-delay: 1.3s; }
+.user-card-link:nth-child(14) { animation-delay: 1.4s; }
+.user-card-link:nth-child(15) { animation-delay: 1.5s; }
+
+
+.user-card {
+    background-color: #E0D9D1;
+    padding: 2rem;
+    text-align: center;
+    height: 100%;
+}
+
+.user-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.user-name {
+    font-family: var(--secondary-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.user-bio {
+    font-size: 1rem;
+    color: #666;
+}
+
+/* ===============================
+   ANIMATION KEYFRAMES
+   =============================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

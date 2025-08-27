@@ -6,20 +6,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+    <!-- Link to a new CSS file for this page -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user_profile.css') }}">
 </head>
 <body>
     <header class="navbar">
         <div class="logo-container">
-            <!-- Logo now links to the dashboard -->
             <a href="{{ url_for('dashboard') }}" class="logo-link">
                 <span class="logo-text">The Social Sort</span>
             </a>
         </div>
-        <!-- New container for header buttons -->
         <div class="header-actions">
             <button class="btn-header" onclick="history.back()">Back</button>
-            <a href="{{ url_for('logout') }}" class="btn-header">Logout</a>
+            <a href="{{ url_for('profile') }}" class="profile-icon">
+                <img src="{{ url_for('static', filename='images/' + ('male.png' if viewer_gender == 'male' else 'female.png')) }}" alt="My Profile">
+            </a>
         </div>
     </header>
 
@@ -31,7 +32,7 @@
         </div>
 
         <div class="ranks-section">
-            <h2>Your Rankings</h2>
+            <h2>Their Rankings</h2>
             <div class="stats-grid">
                 {% for item in profile_data %}
                 <div class="stat-card">
@@ -49,11 +50,7 @@
                         </div>
                     {% else %}
                         <div class="rank-locked">
-                            <p class="unlock-text">Vote to unlock your rank</p>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill" style="width: {{ (item['votes'] / MAX_VOTES) * 100 }}%;"></div>
-                            </div>
-                            <p class="progress-label">{{ item['votes'] }} / {{ MAX_VOTES }} Votes</p>
+                            <p class="unlock-text">Rank is not yet unlocked.</p>
                         </div>
                     {% endif %}
                 </div>
