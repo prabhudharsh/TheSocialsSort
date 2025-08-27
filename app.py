@@ -72,10 +72,36 @@ def send_otp_via_email(user_email, otp_code):
     sender_password = os.getenv('SENDER_PASSWORD')
 
     msg = EmailMessage()
-    msg["Subject"] = "Your OTP Code"
+    msg["Subject"] = "Your Verification Code for The Social Sort"
     msg["From"] = sender_email
     msg["To"] = user_email
-    msg.set_content(f"Your OTP code is: {otp_code}\nIt will expire in 5 minutes.")
+    message_body = f"""
+Welcome to TheSocialSort!
+Thank you for joining our constellation. To complete your sign-up, please use the following verification code:
+
+Your OTP code is: {otp_code}
+This code will expire in 5 minutes.
+
+We're excited to have you!
+--
+TheSocialSortTeam
+
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠳⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣀⡴⢧⣀⠀⠀⣀⣠⠤⠤⠤⠤⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠘⠏⢀⡴⠊⠁⠀⠀⠀⠀⠀⠀⠈⠙⠦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢶⣶⣒⣶⠦⣤⣀⠀⠀
+⠀⠀⠀⠀⠀⠀⢀⣰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣟⠲⡌⠙⢦⠈⢧⠀
+⠀⠀⠀⣠⢴⡾⢟⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡴⢃⡠⠋⣠⠋⠀
+⠐⠀⠞⣱⠋⢰⠁⢿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⠤⢖⣋⡥⢖⣫⠔⠋⠀⠀⠀
+⠈⠠⡀⠹⢤⣈⣙⠚⠶⠤⠤⠤⠴⠶⣒⣒⣚⣩⠭⢵⣒⣻⠭⢖⠏⠁⢀⣀⠀⠀⠀⠀
+⠠⠀⠈⠓⠒⠦⠭⠭⠭⣭⠭⠭⠭⠭⠿⠓⠒⠛⠉⠉⠀⠀⣠⠏⠀⠀⠘⠞⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠓⢤⣀⠀⠀⠀⠀⠀⠀⣀⡤⠞⠁⠀⣰⣆⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠘⠿⠀⠀⠀⠀⠀⠈⠉⠙⠒⠒⠛⠉⠁⠀⠀⠀⠉⢳⡞⠉⠀⠀⠀⠀⠀
+
+"""
+
+    msg.set_content(message_body)
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
@@ -354,6 +380,49 @@ def admin_dashboard():
     conn.close()
     return render_template('admin_dashboard.html', users=users, categories=categories,
                            leaderboards=leaderboards, voting_start=VOTING_START)
+
+# NEW ROUTE for managing users
+@app.route('/admin/users', methods=['POST'])
+def admin_manage_users():
+    if not session.get('admin'):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    action = data.get('action')
+    user_id = data.get('user_id')
+
+    if not action or not user_id:
+        return jsonify({'status': 'error', 'message': 'Missing action or user ID.'}), 400
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if action == 'update':
+            full_name = data.get('full_name')
+            email = data.get('email')
+            gender = data.get('gender')
+            cur.execute("UPDATE users SET full_name=?, email=?, gender=? WHERE id=?",
+                        (full_name, email, gender, user_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'User updated successfully.'})
+
+        elif action == 'delete':
+            # Comprehensive delete: remove user and all associated data
+            cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            cur.execute("DELETE FROM elo_ratings WHERE user_id = ?", (user_id,))
+            cur.execute("DELETE FROM votes WHERE voter_id = ? OR winner_id = ? OR loser_id = ?", (user_id, user_id, user_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'User and all associated data deleted.'})
+
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
+
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 @app.route('/admin_categories', methods=['GET', 'POST'])
 def admin_categories():

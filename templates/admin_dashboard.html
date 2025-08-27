@@ -1,125 +1,296 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    table { border-collapse: collapse; width: 90%; margin: auto; }
-    th, td { border: 1px solid #333; padding: 10px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    button, input { padding: 8px 12px; margin: 5px; cursor: pointer; }
-    nav { margin-bottom: 20px; }
-    .tab { display: inline-block; margin-right: 10px; padding: 6px 12px; border: 1px solid #333; border-radius: 4px; cursor: pointer; }
-    .tab.active { background-color: #007BFF; color: white; }
-    .leaderboard { margin-top: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - The Social Sort</title>
+    <!-- Google Fonts Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Design Language from style.css --- */
+        :root {
+            --bg-color: #F5F1EB;
+            --text-color: #333333;
+            --primary-font: 'Ubuntu Sans', sans-serif;
+            --secondary-font: 'Playfair Display', serif;
+            --button-bg-color: #373737;
+            --button-text-color: #ffffff;
+            --border-color: #E0D9D1;
+            --danger-color: #d9534f;
+            --success-color: #5cb85c;
+        }
+        body {
+            font-family: var(--primary-font);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            font-family: var(--secondary-font);
+            font-weight: 400;
+            text-align: center;
+        }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+        h2 { font-size: 2rem; margin-top: 3rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #fff;
+            font-weight: 700;
+        }
+        tr:nth-child(even) { background-color: #f9f7f5; }
+        tr:hover { background-color: #f1ede8; }
+        .btn, button, input[type="datetime-local"] {
+            font-family: var(--primary-font);
+            border: 1px solid var(--button-bg-color);
+            background-color: transparent;
+            color: var(--button-bg-color);
+            padding: 0.6rem 1.4rem;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.25rem;
+        }
+        .btn:hover, button:hover {
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+        }
+        .btn-danger {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+        .btn-danger:hover {
+            background-color: var(--danger-color);
+            color: #fff;
+        }
+        .btn-success {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+        .btn-success:hover {
+            background-color: var(--success-color);
+            color: #fff;
+        }
+        .header-actions {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .tab-nav {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab {
+            display: inline-block;
+            margin: 0 10px -1px 10px;
+            padding: 10px 20px;
+            border: 1px solid transparent;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .tab.active {
+            border-color: var(--border-color);
+            background-color: #fff;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        input[type="text"], input[type="email"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #fff;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <div class="header-actions">
+            <a href="/admin_categories" class="btn">Manage Categories</a>
+            <a href="/admin_logout" class="btn btn-danger">Logout</a>
+        </div>
 
-  <h1>Admin Dashboard</h1>
-  <button onclick="window.location.href='/admin_logout'">Logout</button>
-  <!-- New button for categories management -->
-  <button onclick="window.location.href='/admin_categories'">Manage Categories</button>
+        <div class="tab-nav">
+            <div class="tab active" onclick="showTab('users')">Users</div>
+            <div class="tab" onclick="showTab('leaderboard')">Leaderboard</div>
+            <div class="tab" onclick="showTab('controls')">Voting Controls</div>
+        </div>
 
-  <nav>
-    <div class="tab active" onclick="showTab('users')">Users</div>
-    <div class="tab" onclick="showTab('leaderboard')">Leaderboard</div>
-  </nav>
+        <!-- Users Tab -->
+        <div id="usersTab" class="tab-content active">
+            <h2>Manage Users</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Gender</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user['username'] }}</td>
+                        <td><input type="text" id="full_name-{{ user['id'] }}" value="{{ user['full_name'] or '' }}"></td>
+                        <td><input type="email" id="email-{{ user['id'] }}" value="{{ user['email'] }}"></td>
+                        <td>
+                            <select id="gender-{{ user['id'] }}">
+                                <option value="male" {% if user['gender'] == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if user['gender'] == 'female' %}selected{% endif %}>Female</option>
+                                <option value="" {% if not user['gender'] %}selected{% endif %}>N/A</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn-success" onclick="updateUser({{ user['id'] }})">Save</button>
+                            <button class="btn-danger" onclick="deleteUser({{ user['id'] }})">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-  <!-- Users Tab -->
-  <div id="usersTab">
-    <h2>Users List</h2>
-    <table>
-      <tr>
-        <th>Username</th>
-        <th>Full Name</th>
-        <th>Email</th>
-        <th>Gender</th>
-      </tr>
-      {% for user in users %}
-      <tr>
-        <td>{{ user['username'] }}</td>
-        <td>{{ user['full_name'] or 'N/A' }}</td>
-        <td>{{ user['email'] }}</td>
-        <td>{{ user['gender'] or 'N/A' }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-
-  <!-- Leaderboard Tab -->
-  <div id="leaderboardTab" style="display:none;">
-    <h2>Leaderboards</h2>
-
-    <div>
-      {% for cat in categories %}
-      <button onclick="showCategory('{{ cat['name'] }}')">{{ cat['name'] }}</button>
-      {% endfor %}
+        <!-- Leaderboard Tab -->
+        <div id="leaderboardTab" class="tab-content">
+            <h2>Leaderboards</h2>
+            <div class="tab-nav">
+                {% for cat in categories %}
+                <div class="tab {% if loop.first %}active{% endif %}" onclick="showCategory('{{ cat['name'] }}', this)">{{ cat['name'] }}</div>
+                {% endfor %}
+            </div>
+            {% for cat in categories %}
+            <div class="leaderboard tab-content {% if loop.first %}active{% endif %}" id="cat_{{ cat['name'] }}">
+                <h3>{{ cat['name'] }}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Rating</th>
+                            <th>Votes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in leaderboards[cat['name']] %}
+                        <tr>
+                            <td>{{ row['rank'] }}</td>
+                            <td>{{ row['full_name'] or 'N/A' }}</td>
+                            <td>{{ row['username'] }}</td>
+                            <td>{{ "%.1f"|format(row['rating']) }}</td>
+                            <td>{{ row['votes'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Controls Tab -->
+        <div id="controlsTab" class="tab-content">
+            <h2>Voting Controls</h2>
+            <input type="datetime-local" id="votingTime" value="{{ voting_start.strftime('%Y-%m-%dT%H:%M') }}">
+            <button onclick="updateVotingTime()">Set Voting Time</button>
+            <button onclick="forceStart()">Force Start Voting</button>
+        </div>
     </div>
 
-    {% for cat in categories %}
-    <div class="leaderboard" id="cat_{{ cat['name'] }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
-      <h3>{{ cat['name'] }}</h3>
-      <table>
-        <tr>
-          <th>Rank</th>
-          <th>Full Name</th>
-          <th>Username</th>
-          <th>Rating</th>
-          <th>Votes</th>
-        </tr>
-        {% for row in leaderboards[cat['name']] %}
-        <tr>
-          <td>{{ row['rank'] }}</td>
-          <td>{{ row['full_name'] or 'N/A' }}</td>
-          <td>{{ row['username'] }}</td>
-          <td>{{ "%.1f"|format(row['rating']) }}</td>
-          <td>{{ row['votes'] }}</td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-    {% endfor %}
-  </div>
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            document.querySelectorAll('.tab-nav .tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector('.tab-nav .tab[onclick*="' + tabName + '"]').classList.add('active');
+        }
 
-  <h2>Voting Controls</h2>
-  <input type="datetime-local" id="votingTime" value="{{ voting_start.strftime('%Y-%m-%dT%H:%M') }}">
-  <button onclick="updateVotingTime()">Set Voting Time</button>
-  <button onclick="forceStart()">Force Start Voting</button>
+        function showCategory(catName, element) {
+            document.querySelectorAll('.leaderboard.tab-content').forEach(d => d.classList.remove('active'));
+            document.getElementById('cat_' + catName).classList.add('active');
+            
+            element.parentElement.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+        }
+        
+        async function sendUserAction(action, payload) {
+            const res = await fetch('/admin/users', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action, ...payload })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (data.status === 'success') {
+                window.location.reload();
+            }
+        }
 
-  <script>
-    function showTab(tab) {
-      document.getElementById('usersTab').style.display = tab === 'users' ? 'block' : 'none';
-      document.getElementById('leaderboardTab').style.display = tab === 'leaderboard' ? 'block' : 'none';
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector('.tab[onclick*="'+tab+'"]').classList.add('active');
-    }
+        function updateUser(userId) {
+            const fullName = document.getElementById(`full_name-${userId}`).value;
+            const email = document.getElementById(`email-${userId}`).value;
+            const gender = document.getElementById(`gender-${userId}`).value;
+            
+            const payload = {
+                user_id: userId,
+                full_name: fullName,
+                email: email,
+                gender: gender
+            };
+            
+            sendUserAction('update', payload);
+        }
 
-    function showCategory(catName) {
-      document.querySelectorAll('.leaderboard').forEach(d => d.style.display = 'none');
-      document.getElementById('cat_' + catName).style.display = 'block';
-    }
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
+                sendUserAction('delete', { user_id: userId });
+            }
+        }
 
-    async function updateVotingTime() {
-      const newTime = document.getElementById('votingTime').value + ":00";
-      const res = await fetch('/admin_dashboard', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({new_time: newTime})
-      });
-      const data = await res.json();
-      alert(data.message);
-    }
+        async function updateVotingTime() {
+            const newTime = document.getElementById('votingTime').value + ":00";
+            const res = await fetch('/admin_dashboard', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({new_time: newTime})
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
 
-    async function forceStart() {
-      const res = await fetch('/admin_dashboard', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({force_start: true})
-      });
-      const data = await res.json();
-      alert(data.message);
-    }
-  </script>
-
+        async function forceStart() {
+            const res = await fetch('/admin_dashboard', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({force_start: true})
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
 </body>
 </html>
