@@ -3,3 +3,4 @@ flask-mysqldb
 flask-bcrypt
 python-dotenv
 db-sqlite3
+Werkzeug
