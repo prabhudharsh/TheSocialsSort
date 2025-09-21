@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Link to the new CSS file -->
+    <!-- Link to the CSS file -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/complete_profile.css') }}">
 </head>
 <body>
@@ -37,13 +37,51 @@
             </div>
             <div class="form-group">
                 <label for="bio">Bio*</label>
-                <textarea id="bio" name="bio" rows="6" required></textarea>
+                <textarea id="bio" name="bio" rows="4" required></textarea>
             </div>
+            
+            <!-- Custom College Dropdown -->
+            <div class="form-group">
+                <label for="college">College*</label>
+                <div class="custom-select-wrapper" id="college-wrapper">
+                    <div class="custom-select">
+                        <div class="custom-select-trigger"><span>Select a College</span></div>
+                        <div class="custom-options">
+                            {% for college in colleges %}
+                                <span class="custom-option" data-value="{{ college.id }}">{{ college.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden native select for form submission -->
+                <select name="college" id="college" style="display: none;" required>
+                    <option value="">Select a College</option>
+                     {% for college in colleges %}
+                        <option value="{{ college.id }}">{{ college.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Custom Class Dropdown -->
+            <div class="form-group">
+                <label for="class_name">Class*</label>
+                <div class="custom-select-wrapper" id="class-wrapper">
+                    <div class="custom-select">
+                        <div class="custom-select-trigger"><span>Select a College First</span></div>
+                        <div class="custom-options">
+                            <!-- Options will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Hidden native select for form submission -->
+                <select name="class_name" id="class_name" style="display: none;" required>
+                     <option value="">Select a Class</option>
+                </select>
+            </div>
+
             <button type="submit" class="btn-next">
                 <span>Next</span>
-                <!-- New wrapper for the icon -->
                 <div class="arrow-icon">
-                    <!-- Updated SVG for a sharper arrow -->
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M10 17L15 12L10 7" stroke="black" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"/>
                     </svg>
@@ -56,29 +94,128 @@
          SCRIPT
          =============================== -->
     <script>
-    document.getElementById('profileForm').onsubmit = async e => {
-        e.preventDefault();
-        const full_name = e.target.full_name.value;
-        const bio = e.target.bio.value;
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Custom Select Dropdown Logic ---
+        const collegeWrapper = document.getElementById('college-wrapper');
+        const classWrapper = document.getElementById('class-wrapper');
 
-        try {
-            const res = await fetch('/complete_profile', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({full_name, bio})
+        function setupCustomSelect(wrapper) {
+            const trigger = wrapper.querySelector('.custom-select-trigger');
+            const optionsContainer = wrapper.querySelector('.custom-options');
+            const nativeSelect = wrapper.nextElementSibling;
+
+            // Toggle dropdown
+            trigger.addEventListener('click', () => {
+                wrapper.classList.toggle('open');
             });
-            const data = await res.json();
-            if (data.status === 'success' && data.redirect) {
-                window.location.href = data.redirect;
-            } else {
-                // You can replace this alert with a more user-friendly message display
-                alert(data.message || 'An error occurred.');
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('Could not connect to the server.');
+
+            // Handle option selection
+            optionsContainer.addEventListener('click', e => {
+                if (e.target.classList.contains('custom-option')) {
+                    const selectedValue = e.target.getAttribute('data-value');
+                    const selectedText = e.target.textContent;
+
+                    // Update UI and hidden select
+                    trigger.querySelector('span').textContent = selectedText;
+                    nativeSelect.value = selectedValue;
+                    
+                    // Trigger a change event for dependency handling
+                    nativeSelect.dispatchEvent(new Event('change'));
+                    
+                    wrapper.classList.remove('open');
+                }
+            });
         }
-    };
+
+        setupCustomSelect(collegeWrapper);
+        setupCustomSelect(classWrapper);
+
+        // --- Dependent Dropdown Logic (College -> Class) ---
+        const nativeCollegeSelect = document.getElementById('college');
+        const nativeClassSelect = document.getElementById('class_name');
+        const classOptionsContainer = classWrapper.querySelector('.custom-options');
+        const classTrigger = classWrapper.querySelector('.custom-select-trigger span');
+
+        nativeCollegeSelect.addEventListener('change', async () => {
+            const collegeId = nativeCollegeSelect.value;
+            
+            // Reset class dropdown
+            classOptionsContainer.innerHTML = '';
+            classTrigger.textContent = 'Loading...';
+            nativeClassSelect.innerHTML = '<option value="">Select a Class</option>';
+
+            if (!collegeId) {
+                classTrigger.textContent = 'Select a College First';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/get_classes/${collegeId}`);
+                const classes = await res.json();
+
+                if (classes.length > 0) {
+                    classes.forEach(cls => {
+                        // Add to custom dropdown
+                        const optionSpan = document.createElement('span');
+                        optionSpan.className = 'custom-option';
+                        optionSpan.textContent = cls.name;
+                        optionSpan.setAttribute('data-value', cls.id);
+                        classOptionsContainer.appendChild(optionSpan);
+
+                        // Add to native select
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = cls.name;
+                        nativeClassSelect.appendChild(option);
+                    });
+                    classTrigger.textContent = 'Select a Class';
+                } else {
+                    classTrigger.textContent = 'No Classes Found';
+                }
+            } catch (error) {
+                console.error('Error fetching classes:', error);
+                classTrigger.textContent = 'Error Loading Classes';
+            }
+        });
+
+        // --- Close dropdown when clicking outside ---
+        window.addEventListener('click', e => {
+            if (!collegeWrapper.contains(e.target)) {
+                collegeWrapper.classList.remove('open');
+            }
+            if (!classWrapper.contains(e.target)) {
+                classWrapper.classList.remove('open');
+            }
+        });
+
+        // --- Form Submission ---
+        document.getElementById('profileForm').onsubmit = async e => {
+            e.preventDefault();
+            const formData = {
+                full_name: e.target.full_name.value,
+                bio: e.target.bio.value,
+                college_id: e.target.college.value,
+                class_id: e.target.class_name.value
+            };
+
+            try {
+                const res = await fetch('/complete_profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(formData)
+                });
+                const data = await res.json();
+                if (data.status === 'success' && data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('Could not connect to the server.');
+            }
+        };
+    });
     </script>
 </body>
 </html>

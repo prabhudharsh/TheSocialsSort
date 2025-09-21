@@ -23,15 +23,22 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
+  overflow-x: hidden; /* Prevents horizontal scroll */
 }
 
-/* --- Navbar Styling --- */
+/* --- Navbar Styling (UPDATED FOR CONSISTENCY) --- */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
+  /* A fixed max-width for consistency across all pages */
+  max-width: 1200px;
+  margin: 0 auto;
+  /* The following lines create a full-width bottom border while keeping the content centered. */
   border-bottom: 1px solid #ddd;
+  box-shadow: 0 0 0 100vmax var(--bg-color);
+  clip-path: inset(0 -100vmax -1px -100vmax);
 }
 
 .logo-text {
@@ -50,7 +57,7 @@ body {
 /* --- DASHBOARD PAGE STYLES --- */
 .dashboard-container {
     max-width: 800px;
-    margin: 2rem auto; 
+    margin: 4rem auto;
     padding: 2rem;
     text-align: center;
 }
@@ -63,7 +70,7 @@ body {
 }
 
 .dashboard-text {
-    font-family: var(--secondary-font);
+    font-family: var(--primary-font);
     font-size: 1.1rem;
     line-height: 1.8;
     color: #333;
@@ -71,9 +78,7 @@ body {
     text-align: left;
 }
 
-/* ===============================
-   NEW: BUTTON GROUP STYLES
-   =============================== */
+/* --- BUTTON GROUP STYLES --- */
 .button-group {
     display: flex;
     justify-content: center;
@@ -122,4 +127,47 @@ body {
 .btn-secondary:hover {
     background-color: var(--button-bg-color);
     color: var(--button-text-color);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+        /* On smaller screens, content padding should match the viewport padding */
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    .dashboard-container {
+        margin: 2rem auto;
+        padding: 1.5rem;
+    }
+    .dashboard-title {
+        font-size: 2.2rem;
+    }
+    .dashboard-text {
+        font-size: 1rem;
+    }
+    .button-group {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .btn-voting, .btn-secondary {
+        width: 100%;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .dashboard-container {
+        margin: 1rem;
+        padding: 1rem;
+        width: calc(100% - 2rem);
+    }
+    .dashboard-title {
+        font-size: 1.8rem;
+    }
 }

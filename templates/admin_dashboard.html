@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - The Social Sort</title>
-    <!-- Google Fonts Import -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* --- Design Language from style.css --- */
+        /* --- Google Font Imports --- */
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap');
+
+        /* --- CSS Variables --- */
         :root {
             --bg-color: #F5F1EB;
             --text-color: #333333;
@@ -20,18 +23,26 @@
             --border-color: #E0D9D1;
             --danger-color: #d9534f;
             --success-color: #5cb85c;
+            --white-bg: #ffffff;
         }
+
+        /* --- General Body & Reset --- */
         body {
             font-family: var(--primary-font);
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 2rem;
+            padding: 1rem;
+            line-height: 1.6;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 1rem;
         }
+
+        /* --- Typography --- */
         h1, h2, h3 {
             font-family: var(--secondary-font);
             font-weight: 400;
@@ -39,24 +50,10 @@
         }
         h1 { font-size: 2.5rem; margin-bottom: 1rem; }
         h2 { font-size: 2rem; margin-top: 3rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 2rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        th, td {
-            border: 1px solid var(--border-color);
-            padding: 12px 15px;
-            text-align: left;
-        }
-        th {
-            background-color: #fff;
-            font-weight: 700;
-        }
-        tr:nth-child(even) { background-color: #f9f7f5; }
-        tr:hover { background-color: #f1ede8; }
-        .btn, button, input[type="datetime-local"] {
+        h3 { text-align: left; font-size: 1.5rem; margin-bottom: 1rem; }
+
+        /* --- Buttons & Forms --- */
+        .btn, button, input[type="datetime-local"], input[type="text"], input[type="email"], select {
             font-family: var(--primary-font);
             border: 1px solid var(--button-bg-color);
             background-color: transparent;
@@ -69,58 +66,204 @@
             text-decoration: none;
             display: inline-block;
             margin: 0.25rem;
+            vertical-align: middle;
+            font-size: 0.9rem;
         }
+
+        input, select {
+            background-color: var(--white-bg);
+            border-radius: 8px;
+        }
+
+        button.btn-small {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
         .btn:hover, button:hover {
             background-color: var(--button-bg-color);
             color: var(--button-text-color);
         }
-        .btn-danger {
-            border-color: var(--danger-color);
-            color: var(--danger-color);
+
+        .btn-danger { border-color: var(--danger-color); color: var(--danger-color); }
+        .btn-danger:hover { background-color: var(--danger-color); color: var(--white-bg); }
+
+        .btn-success { border-color: var(--success-color); color: var(--success-color); }
+        .btn-success:hover { background-color: var(--success-color); color: var(--white-bg); }
+
+        .form-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
-        .btn-danger:hover {
-            background-color: var(--danger-color);
-            color: #fff;
+
+        .form-inline input[type="text"] {
+            flex-grow: 1;
         }
-        .btn-success {
-            border-color: var(--success-color);
-            color: var(--success-color);
-        }
-        .btn-success:hover {
-            background-color: var(--success-color);
-            color: #fff;
-        }
+
+        /* --- Layout & Sections --- */
         .header-actions {
             text-align: center;
             margin-bottom: 2rem;
         }
+
+        .college-block {
+            background-color: var(--white-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .college-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .college-header h3 {
+            margin-bottom: 0;
+        }
+        
+        .add-college-form {
+            padding: 1rem;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        /* --- Class List --- */
+        .class-list {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 1.5rem;
+        }
+        .class-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .class-list li:last-child {
+            border-bottom: none;
+        }
+        
+        /* --- Tabs --- */
         .tab-nav {
             text-align: center;
             margin-bottom: 2rem;
             border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         .tab {
             display: inline-block;
-            margin: 0 10px -1px 10px;
-            padding: 10px 20px;
+            margin: 0 5px -1px 5px;
+            padding: 10px 15px;
             border: 1px solid transparent;
             border-bottom: none;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         .tab.active {
             border-color: var(--border-color);
-            background-color: #fff;
+            background-color: var(--white-bg);
             border-radius: 5px 5px 0 0;
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        input[type="text"], input[type="email"], select {
+
+        /* --- Tables --- */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        table {
+            border-collapse: collapse;
             width: 100%;
-            padding: 8px;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background-color: var(--white-bg);
+        }
+        th, td {
             border: 1px solid var(--border-color);
-            border-radius: 5px;
-            background-color: #fff;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f9f7f5;
+            font-weight: 700;
+        }
+        tr:nth-child(even) { background-color: #fdfbf9; }
+        
+        /* --- Edit/Action Styles --- */
+        .actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .edit-input {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+        }
+        .college-header .edit-input {
+            font-size: 1.5rem;
+            font-family: var(--secondary-font);
+            width: 100%;
+        }
+        .class-list li .edit-input {
+            font-size: 1rem;
+            font-family: var(--primary-font);
+            width: 100%;
+        }
+        .college-name-container {
+            flex-grow: 1;
+            margin-right: 1rem;
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            body { padding: 0.5rem; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { margin-bottom: 1rem; border: 1px solid var(--border-color); }
+            td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                text-align: right;
+            }
+            td:before {
+                position: absolute;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                content: attr(data-label);
+            }
+            td input, td select { width: 100%; }
+            .form-inline { flex-direction: column; align-items: stretch; }
+            .form-inline input, .form-inline button { width: 100%; margin: 0.25rem 0; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 0; }
+            .container { padding: 0.5rem; }
+            .header-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+            .header-actions .btn { width: 100%; }
         }
     </style>
 </head>
@@ -134,89 +277,175 @@
 
         <div class="tab-nav">
             <div class="tab active" onclick="showTab('users')">Users</div>
+            <div class="tab" onclick="showTab('colleges')">Colleges & Classes</div>
             <div class="tab" onclick="showTab('leaderboard')">Leaderboard</div>
             <div class="tab" onclick="showTab('controls')">Voting Controls</div>
         </div>
 
-        <!-- Users Tab -->
         <div id="usersTab" class="tab-content active">
             <h2>Manage Users</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Full Name</th>
-                        <th>Email</th>
-                        <th>Gender</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user['username'] }}</td>
-                        <td><input type="text" id="full_name-{{ user['id'] }}" value="{{ user['full_name'] or '' }}"></td>
-                        <td><input type="email" id="email-{{ user['id'] }}" value="{{ user['email'] }}"></td>
-                        <td>
-                            <select id="gender-{{ user['id'] }}">
-                                <option value="male" {% if user['gender'] == 'male' %}selected{% endif %}>Male</option>
-                                <option value="female" {% if user['gender'] == 'female' %}selected{% endif %}>Female</option>
-                                <option value="" {% if not user['gender'] %}selected{% endif %}>N/A</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="btn-success" onclick="updateUser({{ user['id'] }})">Save</button>
-                            <button class="btn-danger" onclick="deleteUser({{ user['id'] }})">Delete</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Leaderboard Tab -->
-        <div id="leaderboardTab" class="tab-content">
-            <h2>Leaderboards</h2>
-            <div class="tab-nav">
-                {% for cat in categories %}
-                <div class="tab {% if loop.first %}active{% endif %}" onclick="showCategory('{{ cat['name'] }}', this)">{{ cat['name'] }}</div>
-                {% endfor %}
-            </div>
-            {% for cat in categories %}
-            <div class="leaderboard tab-content {% if loop.first %}active{% endif %}" id="cat_{{ cat['name'] }}">
-                <h3>{{ cat['name'] }}</h3>
+            <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Rank</th>
-                            <th>Full Name</th>
                             <th>Username</th>
-                            <th>Rating</th>
-                            <th>Votes</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>College</th>
+                            <th>Class</th>
+                            <th>Gender</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in leaderboards[cat['name']] %}
+                        {% for user in users %}
                         <tr>
-                            <td>{{ row['rank'] }}</td>
-                            <td>{{ row['full_name'] or 'N/A' }}</td>
-                            <td>{{ row['username'] }}</td>
-                            <td>{{ "%.1f"|format(row['rating']) }}</td>
-                            <td>{{ row['votes'] }}</td>
+                            <td data-label="Username">{{ user.username }}</td>
+                            <td data-label="Full Name"><input type="text" id="full_name-{{ user.id }}" value="{{ user.full_name or '' }}"></td>
+                            <td data-label="Email"><input type="email" id="email-{{ user.id }}" value="{{ user.email }}"></td>
+                            <td data-label="College">{{ user.college_name or 'N/A' }}</td>
+                            <td data-label="Class">{{ user.class_name or 'N/A' }}</td>
+                            <td data-label="Gender">
+                                <select id="gender-{{ user.id }}">
+                                    <option value="male" {% if user.gender == 'male' %}selected{% endif %}>Male</option>
+                                    <option value="female" {% if user.gender == 'female' %}selected{% endif %}>Female</option>
+                                    <option value="" {% if not user.gender %}selected{% endif %}>N/A</option>
+                                </select>
+                            </td>
+                            <td data-label="Actions">
+                                <button class="btn-success" onclick="handleAction('users', 'update', { user_id: {{ user.id }} })">Save</button>
+                                <button class="btn-danger" onclick="handleAction('users', 'delete', { user_id: {{ user.id }} })">Delete</button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div id="collegesTab" class="tab-content">
+            <h2>Manage Colleges & Classes</h2>
+            <div class="form-inline add-college-form">
+                <input type="text" id="newCollegeName" placeholder="New College Name">
+                <button onclick="handleAction('colleges', 'add_college')">Add College</button>
+            </div>
+            {% for college in colleges %}
+                <div class="college-block">
+                    <div class="college-header">
+                        <div class="college-name-container">
+                             <h3 id="collegeName-{{ college.id }}" style="margin: 0;">{{ college.name }}</h3>
+                             <input type="text" id="collegeNameInput-{{ college.id }}" value="{{ college.name }}" class="edit-input" style="display:none;">
+                        </div>
+                        <div class="actions">
+                            <button class="btn-small" id="editCollegeBtn-{{ college.id }}" onclick="toggleEdit('college', {{ college.id }})">Edit</button>
+                            <button class="btn-success btn-small" id="saveCollegeBtn-{{ college.id }}" onclick="saveEdit('college', {{ college.id }})" style="display:none;">Save</button>
+                            <button class="btn-danger btn-small" onclick="handleAction('colleges', 'delete_college', { college_id: {{ college.id }} })">Delete College</button>
+                        </div>
+                    </div>
+                    
+                    <ul class="class-list">
+                        {% for class in college.classes %}
+                        <li>
+                            <div style="flex-grow: 1; margin-right: 1rem;">
+                                <span id="className-{{ class.id }}">{{ class.name }}</span>
+                                <input type="text" id="classNameInput-{{ class.id }}" value="{{ class.name }}" class="edit-input" style="display:none;">
+                            </div>
+                            <div class="actions">
+                                <button class="btn-small" id="editClassBtn-{{ class.id }}" onclick="toggleEdit('class', {{ class.id }})">Edit</button>
+                                <button class="btn-success btn-small" id="saveClassBtn-{{ class.id }}" onclick="saveEdit('class', {{ class.id }})" style="display:none;">Save</button>
+                                <button class="btn-danger btn-small" onclick="handleAction('colleges', 'delete_class', { class_id: {{ class.id }} })">Delete</button>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li>No classes added yet.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="form-inline">
+                         <input type="text" id="newClassName-{{ college.id }}" placeholder="New Class Name">
+                         <button onclick="handleAction('colleges', 'add_class', { college_id: {{ college.id }} })">Add Class</button>
+                    </div>
+                </div>
+            {% else %}
+                <p style="text-align: center;">No colleges found. Add one above to get started.</p>
             {% endfor %}
         </div>
         
-        <!-- Controls Tab -->
+        <div id="leaderboardTab" class="tab-content">
+            <h2>Leaderboards</h2>
+            <div class="tab-nav">
+                {% for cat in categories %}
+                <div class="tab {% if loop.first %}active{% endif %}" onclick="showCategory('{{ cat.name | replace(' ', '_') }}', this)">{{ cat.name }}</div>
+                {% endfor %}
+            </div>
+            {% for cat in categories %}
+            <div class="leaderboard tab-content {% if loop.first %}active{% endif %}" id="cat_{{ cat.name | replace(' ', '_') }}">
+                <h3>{{ cat.name }}</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Full Name</th>
+                                <th>Username</th>
+                                <th>Rating</th>
+                                <th>Votes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in leaderboards[cat.name] %}
+                            <tr>
+                                <td data-label="Rank">{{ row.rank }}</td>
+                                <td data-label="Full Name">{{ row.full_name or 'N/A' }}</td>
+                                <td data-label="Username">{{ row.username }}</td>
+                                <td data-label="Rating">{{ "%.1f"|format(row.rating) }}</td>
+                                <td data-label="Votes">{{ row.votes }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
         <div id="controlsTab" class="tab-content">
             <h2>Voting Controls</h2>
-            <input type="datetime-local" id="votingTime" value="{{ voting_start.strftime('%Y-%m-%dT%H:%M') }}">
-            <button onclick="updateVotingTime()">Set Voting Time</button>
-            <button onclick="forceStart()">Force Start Voting</button>
+            {% for college in colleges %}
+            <div class="college-block">
+                <h3>{{ college.name }}</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Class Name</th>
+                                <th>Voting Start Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in college.classes %}
+                            <tr>
+                                <td data-label="Class Name">{{ class.name }}</td>
+                                <td data-label="Voting Start Time">
+                                    <input type="datetime-local" id="votingTime-{{ class.id }}" value="{{ class.voting_start_time[:16] if class.voting_start_time else '' }}">
+                                </td>
+                                <td data-label="Actions">
+                                    <button class="btn-success" onclick="updateVotingTime({{ class.id }})">Save Time</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" style="text-align:center;">No classes in this college.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+                 <p style="text-align: center;">No colleges found. Add a college to manage voting times.</p>
+            {% endfor %}
         </div>
     </div>
 
@@ -237,59 +466,111 @@
             element.classList.add('active');
         }
         
-        async function sendUserAction(action, payload) {
-            const res = await fetch('/admin/users', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action, ...payload })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if (data.status === 'success') {
-                window.location.reload();
+        async function handleAction(endpoint, action, extraPayload = {}) {
+            let payload = { action, ...extraPayload };
+
+            // Confirmation dialogs for delete actions
+            if (action.includes('delete')) {
+                let message = 'Are you sure you want to delete this? This cannot be undone.';
+                if (action === 'delete_user') message = 'Are you sure you want to permanently delete this user and all associated data? This cannot be undone.';
+                if (action === 'delete_college') message = 'Are you sure you want to delete this college? This will also delete all of its classes and associated user links. This cannot be undone.';
+                if (action === 'delete_class') message = 'Are you sure you want to delete this class and remove it from all users? This cannot be undone.';
+                if (!confirm(message)) return;
+            }
+
+            if (endpoint === 'users' && action === 'update') {
+                const userId = extraPayload.user_id;
+                payload.full_name = document.getElementById(`full_name-${userId}`).value;
+                payload.email = document.getElementById(`email-${userId}`).value;
+                payload.gender = document.getElementById(`gender-${userId}`).value;
+            } else if (endpoint === 'colleges' && action === 'add_college') {
+                payload.name = document.getElementById('newCollegeName').value;
+            } else if (endpoint === 'colleges' && action === 'add_class') {
+                payload.name = document.getElementById(`newClassName-${extraPayload.college_id}`).value;
+            }
+
+            try {
+                const res = await fetch(`/admin/${endpoint}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                if (res.ok && data.status === 'success') {
+                    window.location.reload();
+                } else if (!res.ok) {
+                    throw new Error(data.message || `HTTP error! status: ${res.status}`);
+                }
+            } catch (error) {
+                console.error(`Error during ${action} on ${endpoint}:`, error);
+                alert('An unexpected error occurred. Check the browser console for details.');
             }
         }
 
-        function updateUser(userId) {
-            const fullName = document.getElementById(`full_name-${userId}`).value;
-            const email = document.getElementById(`email-${userId}`).value;
-            const gender = document.getElementById(`gender-${userId}`).value;
+        async function updateVotingTime(classId) {
+            const newTime = document.getElementById(`votingTime-${classId}`).value;
+            if (!newTime) {
+                alert('Please select a valid date and time.');
+                return;
+            }
             
-            const payload = {
-                user_id: userId,
-                full_name: fullName,
-                email: email,
-                gender: gender
-            };
-            
-            sendUserAction('update', payload);
-        }
-
-        function deleteUser(userId) {
-            if (confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
-                sendUserAction('delete', { user_id: userId });
+            try {
+                const res = await fetch('/admin/update_voting_time', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ class_id: classId, new_time: newTime + ':00' }) // Append seconds for compatibility
+                });
+                const data = await res.json();
+                alert(data.message);
+                if (!res.ok) throw new Error(data.message);
+            } catch (error) {
+                console.error('Error updating voting time:', error);
+                alert('An error occurred while updating the time.');
             }
         }
 
-        async function updateVotingTime() {
-            const newTime = document.getElementById('votingTime').value + ":00";
-            const res = await fetch('/admin_dashboard', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({new_time: newTime})
-            });
-            const data = await res.json();
-            alert(data.message);
+        function toggleEdit(type, id) {
+            const properType = type.charAt(0).toUpperCase() + type.slice(1);
+
+            const nameElement = document.getElementById(`${type}Name-${id}`);
+            const inputElement = document.getElementById(`${type}NameInput-${id}`);
+            const editBtn = document.getElementById(`edit${properType}Btn-${id}`);
+            const saveBtn = document.getElementById(`save${properType}Btn-${id}`);
+            
+            const isEditing = nameElement.style.display === 'none';
+
+            nameElement.style.display = isEditing ? '' : 'none';
+            inputElement.style.display = isEditing ? 'none' : 'block';
+            editBtn.style.display = isEditing ? 'inline-block' : 'none';
+            saveBtn.style.display = isEditing ? 'none' : 'inline-block';
+            
+            if (!isEditing) {
+                inputElement.focus();
+            }
         }
 
-        async function forceStart() {
-            const res = await fetch('/admin_dashboard', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({force_start: true})
-            });
-            const data = await res.json();
-            alert(data.message);
+        function saveEdit(type, id) {
+            const inputElement = document.getElementById(`${type}NameInput-${id}`);
+            const newName = inputElement.value;
+
+            if (!newName || !newName.trim()) {
+                alert('Name cannot be empty.');
+                return;
+            }
+            
+            const payload = { name: newName };
+            let action = '';
+            
+            if (type === 'college') {
+                action = 'edit_college';
+                payload.college_id = id;
+            } else {
+                action = 'edit_class';
+                payload.class_id = id;
+            }
+            
+            handleAction('colleges', action, payload);
         }
     </script>
 </body>

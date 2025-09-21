@@ -57,46 +57,52 @@
          SCRIPT
          =============================== -->
     <script>
-        let timeLeft = {{ time_left }};
-        const forceStart = {{ force_start|default(False)|lower }};
-        const timerSpan = document.getElementById('timer');
-        const countdownBtn = document.getElementById('countdownBtn');
+        document.addEventListener('DOMContentLoaded', () => {
+            let timeLeft = {{ time_left }};
+            const timerSpan = document.getElementById('timer');
+            const countdownBtn = document.getElementById('countdownBtn');
 
-        if (forceStart) timeLeft = 0;
+            function formatTime(seconds) {
+                if (seconds <= 0) return "0s";
+                
+                let d = Math.floor(seconds / (3600 * 24));
+                let h = Math.floor((seconds % (3600 * 24)) / 3600);
+                let m = Math.floor((seconds % 3600) / 60);
+                let s = Math.floor(seconds % 60);
 
-        function formatTime(seconds) {
-            let d = Math.floor(seconds / (3600 * 24));
-            let h = Math.floor((seconds % (3600 * 24)) / 3600);
-            let m = Math.floor((seconds % 3600) / 60);
-            let s = seconds % 60;
-
-            if (seconds < 60) {
-                return `${s}s`;
-            } else if (seconds < 3600) {
-                return `${m}m ${s.toString().padStart(2, '0')}s`;
-            } else if (seconds < 86400) {
-                return `${h}h ${m}m`;
-            } else {
-                return `${d}d ${h}h ${m}m`;
+                let parts = [];
+                if (d > 0) parts.push(`${d}d`);
+                if (h > 0) parts.push(`${h}h`);
+                if (m > 0) parts.push(`${m}m`);
+                if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+                
+                return parts.join(' ');
             }
-        }
 
-        const countdown = setInterval(() => {
             if (timeLeft > 0) {
-                timeLeft--;
-                timerSpan.textContent = " " + formatTime(timeLeft);
+                timerSpan.textContent = formatTime(timeLeft);
+                const countdown = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft > 0) {
+                        timerSpan.textContent = formatTime(timeLeft);
+                    } else {
+                        clearInterval(countdown);
+                        countdownBtn.textContent = "Start Voting";
+                        countdownBtn.disabled = false;
+                        timerSpan.textContent = "now!";
+                    }
+                }, 1000);
             } else {
-                clearInterval(countdown);
                 countdownBtn.textContent = "Start Voting";
                 countdownBtn.disabled = false;
             }
-        }, 1000);
 
-        timerSpan.textContent = " " + formatTime(timeLeft);
-
-        countdownBtn.onclick = () => {
-            window.location.href = "/category";
-        };
+            countdownBtn.onclick = () => {
+                if (!countdownBtn.disabled) {
+                    window.location.href = "/category";
+                }
+            };
+        });
     </script>
 </body>
 </html>

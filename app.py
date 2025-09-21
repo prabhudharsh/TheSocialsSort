@@ -15,10 +15,78 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
+# -----------------------
+# Database Initialization
+# -----------------------
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-# Global voting control
-VOTING_START = datetime.now() + timedelta(seconds=0)
-FORCE_START = False
+    # Create tables if they don't exist
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS colleges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS classes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            college_id INTEGER NOT NULL,
+            voting_start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (college_id) REFERENCES colleges (id) ON DELETE CASCADE
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            is_verified INTEGER DEFAULT 0,
+            full_name TEXT,
+            bio TEXT,
+            gender TEXT,
+            college_id INTEGER,
+            class_id INTEGER,
+            FOREIGN KEY (college_id) REFERENCES colleges (id),
+            FOREIGN KEY (class_id) REFERENCES classes (id)
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS elo_ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            rating REAL DEFAULT 1200,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voter_id INTEGER NOT NULL,
+            winner_id INTEGER NOT NULL,
+            loser_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (voter_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (winner_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (loser_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 # -----------------------
@@ -36,7 +104,8 @@ MAX_VOTES = 10 # Global constant for max votes
 # Database connection
 # -----------------------
 def get_db_connection():
-    conn = sqlite3.connect(os.getenv('DB_PATH'))
+    db_path = os.getenv('DB_PATH', 'database.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -137,10 +206,12 @@ def login_ajax():
     attempts = session['login_attempts'].get(username, {'count': 0, 'lock_until': None})
 
     now = datetime.now()
-    lock_until = attempts.get('lock_until')
-    if lock_until and now < lock_until:
-        remaining = int((lock_until - now).total_seconds() // 60) + 1
-        return jsonify({'status': 'danger', 'message': f'Too many failed attempts. Try again in {remaining} minutes.'})
+    lock_until_str = attempts.get('lock_until')
+    if lock_until_str:
+        lock_until = datetime.fromisoformat(lock_until_str)
+        if now < lock_until:
+            remaining = int((lock_until - now).total_seconds() // 60) + 1
+            return jsonify({'status': 'danger', 'message': f'Too many failed attempts. Try again in {remaining} minutes.'})
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -159,7 +230,7 @@ def login_ajax():
     else:
         attempts['count'] += 1
         if attempts['count'] >= MAX_FAILED_ATTEMPTS:
-            attempts['lock_until'] = now + timedelta(minutes=LOCKOUT_MINUTES)
+            attempts['lock_until'] = (now + timedelta(minutes=LOCKOUT_MINUTES)).isoformat()
             attempts['count'] = 0
         session['login_attempts'][username] = attempts
         return jsonify({'status': 'danger', 'message': 'Invalid username or password.'})
@@ -322,32 +393,28 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-@app.route('/admin_dashboard', methods=['GET', 'POST'])
+@app.route('/admin_dashboard')
 def admin_dashboard():
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
 
-    global VOTING_START, FORCE_START
     conn = get_db_connection()
     cur = conn.cursor()
-
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        if 'new_time' in data:
-            VOTING_START = datetime.strptime(data['new_time'], '%Y-%m-%d %H:%M:%S')
-            FORCE_START = False
-            return jsonify({'status': 'success', 'message': 'Voting time updated.'})
-        elif data.get('force_start'):
-            FORCE_START = True
-            return jsonify({'status': 'success', 'message': 'Voting started immediately.'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Invalid action.'})
-
-    cur.execute("SELECT id, username, full_name, email, gender FROM users")
+    
+    # Fetch users with college and class names
+    cur.execute("""
+        SELECT u.id, u.username, u.full_name, u.email, u.gender, 
+               c.name as college_name, cl.name as class_name
+        FROM users u
+        LEFT JOIN colleges c ON u.college_id = c.id
+        LEFT JOIN classes cl ON u.class_id = cl.id
+    """)
     users = cur.fetchall()
+
     cur.execute("SELECT id, name FROM categories")
     categories = cur.fetchall()
 
+    # Leaderboard logic remains the same
     leaderboards = {}
     for cat in categories:
         cat_id = cat['id']
@@ -363,25 +430,27 @@ def admin_dashboard():
             ORDER BY rating DESC
         """, (cat_id, cat_id))
         leaderboard = cur.fetchall()
+        leaderboards[cat['name']] = [dict(row) for row in leaderboard] # Convert to dict list
 
-        rank = 1
-        prev_rating = None
-        for i, row in enumerate(leaderboard):
-            rating = row['rating']
-            if prev_rating is not None and rating < prev_rating:
-                rank = i + 1
-            row_dict = dict(row)
-            row_dict['rank'] = rank
-            leaderboard[i] = row_dict
-            prev_rating = rating
-        leaderboards[cat['name']] = leaderboard
-
+    # NEW: Fetch colleges and their classes
+    cur.execute("SELECT id, name FROM colleges ORDER BY name")
+    colleges_raw = cur.fetchall()
+    colleges = []
+    for college_row in colleges_raw:
+        college = dict(college_row)
+        cur.execute("SELECT id, name, voting_start_time FROM classes WHERE college_id = ? ORDER BY name", (college['id'],))
+        college['classes'] = [dict(row) for row in cur.fetchall()]
+        colleges.append(college)
+        
     cur.close()
     conn.close()
-    return render_template('admin_dashboard.html', users=users, categories=categories,
-                           leaderboards=leaderboards, voting_start=VOTING_START)
 
-# NEW ROUTE for managing users
+    return render_template('admin_dashboard.html', 
+                           users=users, 
+                           categories=categories,
+                           leaderboards=leaderboards, 
+                           colleges=colleges)
+                           
 @app.route('/admin/users', methods=['POST'])
 def admin_manage_users():
     if not session.get('admin'):
@@ -407,7 +476,6 @@ def admin_manage_users():
             return jsonify({'status': 'success', 'message': 'User updated successfully.'})
 
         elif action == 'delete':
-            # Comprehensive delete: remove user and all associated data
             cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
             cur.execute("DELETE FROM elo_ratings WHERE user_id = ?", (user_id,))
             cur.execute("DELETE FROM votes WHERE voter_id = ? OR winner_id = ? OR loser_id = ?", (user_id, user_id, user_id))
@@ -417,6 +485,106 @@ def admin_manage_users():
         else:
             return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
 
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/admin/colleges', methods=['POST'])
+def admin_manage_colleges():
+    if not session.get('admin'):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    action = data.get('action')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if action == 'add_college':
+            name = data.get('name')
+            if not name:
+                return jsonify({'status': 'error', 'message': 'College name is required.'}), 400
+            cur.execute("INSERT INTO colleges (name) VALUES (?)", (name,))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'College added successfully.'})
+
+        elif action == 'edit_college':
+            college_id = data.get('college_id')
+            name = data.get('name')
+            if not name or not college_id:
+                return jsonify({'status': 'error', 'message': 'New name and college ID are required.'}), 400
+            cur.execute("UPDATE colleges SET name = ? WHERE id = ?", (name, college_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'College name updated successfully.'})
+
+        elif action == 'delete_college':
+            college_id = data.get('college_id')
+            if not college_id:
+                return jsonify({'status': 'error', 'message': 'College ID is required.'}), 400
+            cur.execute("DELETE FROM colleges WHERE id = ?", (college_id,))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'College and its classes deleted successfully.'})
+
+        elif action == 'add_class':
+            name = data.get('name')
+            college_id = data.get('college_id')
+            if not name or not college_id:
+                return jsonify({'status': 'error', 'message': 'Class name and college ID are required.'}), 400
+            cur.execute("INSERT INTO classes (name, college_id) VALUES (?, ?)", (name, college_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'Class added successfully.'})
+
+        elif action == 'edit_class':
+            class_id = data.get('class_id')
+            name = data.get('name')
+            if not name or not class_id:
+                return jsonify({'status': 'error', 'message': 'New name and class ID are required.'}), 400
+            cur.execute("UPDATE classes SET name = ? WHERE id = ?", (name, class_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'Class name updated successfully.'})
+
+        elif action == 'delete_class':
+            class_id = data.get('class_id')
+            if not class_id:
+                return jsonify({'status': 'error', 'message': 'Class ID is required.'}), 400
+            cur.execute("DELETE FROM classes WHERE id = ?", (class_id,))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': 'Class deleted successfully.'})
+        
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid action.'}), 400
+
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': 'This name might already exist.'}), 409
+    except sqlite3.Error as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/admin/update_voting_time', methods=['POST'])
+def admin_update_voting_time():
+    if not session.get('admin'):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    class_id = data.get('class_id')
+    new_time = data.get('new_time')
+
+    if not class_id or not new_time:
+        return jsonify({'status': 'error', 'message': 'Missing class ID or time.'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE classes SET voting_start_time = ? WHERE id = ?", (new_time, class_id))
+        conn.commit()
+        return jsonify({'status': 'success', 'message': 'Voting time updated successfully.'})
     except sqlite3.Error as e:
         conn.rollback()
         return jsonify({'status': 'error', 'message': f'Database error: {e}'}), 500
@@ -489,29 +657,50 @@ def admin_logout():
 # -----------------------
 @app.route('/dashboard')
 def dashboard():
-    if 'username' not in session:
+    if 'user_id' not in session:
         return "Not logged in.", 403
 
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT full_name, bio, gender FROM users WHERE id = ?", (session['user_id'],))
+    cur.execute("SELECT full_name, bio, gender, class_id FROM users WHERE id = ?", (session['user_id'],))
     user = cur.fetchone()
+    
+    if not user:
+        cur.close()
+        conn.close()
+        session.clear()
+        return redirect(url_for('landing'))
+
+    if not user['full_name'] or not user['bio'] or not user['class_id']:
+        cur.close()
+        conn.close()
+        return redirect(url_for('complete_profile'))
+    if not user['gender']:
+        cur.close()
+        conn.close()
+        return redirect(url_for('select_gender'))
+
+    # Fetch voting time for the user's class
+    cur.execute("SELECT voting_start_time FROM classes WHERE id = ?", (user['class_id'],))
+    class_info = cur.fetchone()
     cur.close()
     conn.close()
 
-    if not user['full_name'] or not user['bio']:
-        return redirect(url_for('complete_profile'))
-    if not user['gender']:
-        return redirect(url_for('select_gender'))
+    time_left = 0
+    if class_info and class_info['voting_start_time']:
+        time_str = class_info['voting_start_time'].replace('T', ' ')
+        try:
+            voting_start = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+            now = datetime.now()
+            if now < voting_start:
+                time_left = int((voting_start - now).total_seconds())
+        except ValueError:
+            # Handle cases where the format might be different or invalid
+            print(f"Warning: Could not parse time '{time_str}' for class_id {user['class_id']}")
+            time_left = 0
 
-    now = datetime.now()
-    time_left = int((VOTING_START - now).total_seconds())
-    if time_left < 0:
-        time_left = 0
 
     return render_template('dashboard.html', username=session['username'], time_left=time_left, gender=user['gender'])
-
-# Add this new route to your app.py file
 
 @app.route('/user_list')
 def user_list():
@@ -521,22 +710,17 @@ def user_list():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Fetch the current user's gender for the profile icon in the navbar
     cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
     current_user = cur.fetchone()
     user_gender = current_user['gender'] if current_user else 'male'
     
-    # Fetch all users to display on the page
     cur.execute("SELECT id, username, full_name, bio, gender FROM users")
     users = cur.fetchall()
     
     cur.close()
     conn.close()
     
-    # Render the template, passing both the list of all users and the current user's gender
     return render_template('user_list.html', users=users, gender=user_gender)
-
-# Add this new route to your app.py file
 
 @app.route('/user/<username>')
 def user_profile(username):
@@ -546,36 +730,29 @@ def user_profile(username):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Fetch the data for the user whose profile is being viewed
     cur.execute("SELECT id, username, full_name, bio, gender FROM users WHERE username=?", (username,))
     user = cur.fetchone()
 
-    # If the user doesn't exist, return a 404 error
     if not user:
         return "User not found", 404
 
-    # Fetch the gender of the person viewing the profile for the navbar icon
     cur.execute("SELECT gender FROM users WHERE id=?", (session['user_id'],))
     viewer = cur.fetchone()
     viewer_gender = viewer['gender'] if viewer else 'male'
 
-    # Fetch all categories to calculate ranks
     cur.execute("SELECT id, name FROM categories")
     categories = cur.fetchall()
 
     profile_data = []
     for cat in categories:
-        # Check how many times the profile owner has voted in this category
         cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
         votes_count = cur.fetchone()['cnt']
 
-        # Only show the rank if they have completed the required number of votes
         if votes_count >= MAX_VOTES:
             cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
             rating_row = cur.fetchone()
             rating = rating_row['rating'] if rating_row else 1200
 
-            # Calculate the user's rank in this category
             cur.execute("""
                 SELECT COUNT(*)+1 as rank
                 FROM elo_ratings
@@ -589,7 +766,6 @@ def user_profile(username):
                 'rank': rank
             })
         else:
-            # If they haven't voted enough, the rank is locked
             profile_data.append({
                 'category': cat['name'],
                 'rating': None,
@@ -599,7 +775,6 @@ def user_profile(username):
     cur.close()
     conn.close()
 
-    # Render the user_profile template with all the necessary data
     return render_template('user_profile.html', user=user, profile_data=profile_data, viewer_gender=viewer_gender)
 
 @app.route('/complete_profile', methods=['GET', 'POST'])
@@ -607,27 +782,48 @@ def complete_profile():
     if 'user_id' not in session:
         return "Not logged in.", 403
 
+    conn = get_db_connection()
+    cur = conn.cursor()
+
     if request.method == 'POST':
         data = request.get_json()
         full_name = data.get('full_name', '').strip()
         bio = data.get('bio', '').strip()
+        college_id = data.get('college_id')
+        class_id = data.get('class_id')
 
-        if not full_name or not bio:
-            return jsonify({'status': 'error', 'message': 'Full name and bio cannot be empty.'})
+        if not all([full_name, bio, college_id, class_id]):
+            cur.close()
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'All fields are required.'})
 
-        conn = get_db_connection()
-        cur = conn.cursor()
         cur.execute(
-            "UPDATE users SET full_name = ?, bio = ? WHERE id = ?",
-            (full_name, bio, session['user_id'])
+            "UPDATE users SET full_name = ?, bio = ?, college_id = ?, class_id = ? WHERE id = ?",
+            (full_name, bio, college_id, class_id, session['user_id'])
         )
         conn.commit()
         cur.close()
         conn.close()
-
         return jsonify({'status': 'success', 'redirect': '/select_gender'})
 
-    return render_template('complete_profile.html')
+    cur.execute("SELECT id, name FROM colleges")
+    colleges = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('complete_profile.html', colleges=colleges)
+
+@app.route('/get_classes/<int:college_id>')
+def get_classes(college_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 403
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM classes WHERE college_id = ?", (college_id,))
+    classes = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(c) for c in classes])
 
 @app.route('/select_gender', methods=['GET', 'POST'])
 def select_gender():
@@ -713,7 +909,6 @@ def category():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Fetch user's gender to pass to the template
     cur.execute("SELECT gender FROM users WHERE id = ?", (session['user_id'],))
     user = cur.fetchone()
     user_gender = user['gender'] if user else 'male'
@@ -746,7 +941,6 @@ def category_page(cat_id):
         conn.close()
         return "Invalid category.", 404
 
-    # Fetch current vote count for the progress bar
     cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user_id, cat_id))
     votes_count = cur.fetchone()['cnt']
 
@@ -894,4 +1088,6 @@ def logout():
     return redirect(url_for('landing'))
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
+

@@ -10,6 +10,7 @@
   --button-bg-color: #1a1a1a;
   --button-text-color: #ffffff;
   --input-border-color: #333333;
+  --hover-bg-color: #f0f0f0;
 }
 
 /* --- General Body & Reset --- */
@@ -24,15 +25,22 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
+  overflow-x: hidden; /* Prevents horizontal scroll */
 }
 
-/* --- Navbar Styling --- */
+/* --- Navbar Styling (UPDATED FOR CONSISTENCY) --- */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
+  /* A fixed max-width for consistency across all pages */
+  max-width: 1200px;
+  margin: 0 auto;
+  /* The following lines create a full-width bottom border while keeping the content centered. */
   border-bottom: 1px solid #ddd;
+  box-shadow: 0 0 0 100vmax var(--bg-color);
+  clip-path: inset(0 -100vmax -1px -100vmax);
 }
 
 .logo-text {
@@ -82,6 +90,7 @@ body {
     font-weight: 500;
 }
 
+/* Common styles for regular form fields */
 .form-group input,
 .form-group textarea {
     width: 100%;
@@ -91,7 +100,7 @@ body {
     background-color: transparent;
     font-family: var(--primary-font);
     font-size: 1rem;
-    transition: border-color 0.3s ease;
+    transition: all 0.2s ease-in-out;
 }
 
 .form-group input:focus,
@@ -99,6 +108,114 @@ body {
     outline: none;
     border-color: #888;
 }
+
+
+/* --- Custom Select Dropdown Styles --- */
+.custom-select-wrapper {
+    position: relative;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-color);
+    background: transparent;
+    border: 1px solid var(--input-border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.custom-select-wrapper.open .custom-select-trigger {
+    border-color: #888;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.custom-select-trigger::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--text-color);
+    border-bottom: 2px solid var(--text-color);
+    transform: translateY(-25%) rotate(45deg);
+    transition: transform 0.3s ease;
+}
+
+.custom-select-wrapper.open .custom-select-trigger::after {
+    transform: translateY(0) rotate(-135deg);
+}
+
+.custom-options {
+    position: absolute;
+    display: block;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #888;
+    border-top: 0;
+    background: #fff;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    /* Added for Firefox scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc var(--hover-bg-color);
+}
+
+.custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-option {
+    display: block;
+    padding: 0.8rem 1rem;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.custom-option:hover {
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
+}
+
+/* --- Custom Scrollbar for Dropdown (WebKit) --- */
+.custom-options::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-options::-webkit-scrollbar-track {
+  background: var(--hover-bg-color);
+  border-radius: 10px;
+}
+
+.custom-options::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+  border: 2px solid var(--hover-bg-color);
+}
+
+.custom-options::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3;
+}
+
 
 /* --- Button Styling --- */
 .btn-next {
@@ -115,6 +232,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-top: 2.5rem;
 }
 
 .btn-next:hover {
@@ -125,7 +243,7 @@ body {
     flex-grow: 1;
     text-align: center;
     /* This margin balances the space taken by the arrow icon */
-    margin-left: 38px; 
+    margin-left: 38px;
 }
 
 .arrow-icon {
@@ -142,4 +260,79 @@ body {
 
 .btn-next:hover .arrow-icon {
     transform: translateX(5px);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+    }
+
+    .logo-text {
+        font-size: 1.3rem;
+    }
+
+    .profile-container {
+        margin: 2rem auto;
+        padding: 1.5rem;
+    }
+
+    .profile-header {
+        margin-bottom: 2rem;
+    }
+
+    .profile-title {
+        font-size: 2.5rem;
+    }
+
+    .profile-subtitle {
+        font-size: 1rem;
+    }
+
+    .btn-next {
+        font-size: 1.1rem;
+        padding: 0.4rem 0.5rem 0.4rem 1.2rem;
+    }
+
+    .btn-next span {
+        margin-left: 32px;
+    }
+
+    .arrow-icon {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-container {
+        margin: 1rem;
+        padding: 1rem;
+        width: calc(100% - 2rem);
+    }
+
+    .profile-title {
+        font-size: 2.2rem;
+    }
+
+    .form-group label {
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .custom-select-trigger {
+        font-size: 0.9rem;
+        padding: 0.7rem 0.9rem;
+    }
+
+    .custom-option {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-next span {
+        /* Center the text a bit better on small buttons */
+        margin-left: 30px;
+    }
 }
