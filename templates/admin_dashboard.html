@@ -389,7 +389,8 @@
                                 <th>Full Name</th>
                                 <th>Username</th>
                                 <th>Rating</th>
-                                <th>Votes</th>
+                                <th>Winning Votes</th>
+                                <th>Losing Votes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -399,7 +400,8 @@
                                 <td data-label="Full Name">{{ row.full_name or 'N/A' }}</td>
                                 <td data-label="Username">{{ row.username }}</td>
                                 <td data-label="Rating">{{ "%.1f"|format(row.rating) }}</td>
-                                <td data-label="Votes">{{ row.votes }}</td>
+                                <td data-label="Winning Votes">{{ row.winning_votes }}</td>
+                                <td data-label="Losing Votes">{{ row.losing_votes }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

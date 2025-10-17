@@ -6,10 +6,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Ubuntu+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Link to a new CSS file for this page -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/user_profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 </head>
 <body>
+
+{% if is_owner %}
     <header class="navbar">
         <div class="logo-container">
             <a href="{{ url_for('dashboard') }}" class="logo-link">
@@ -18,9 +19,7 @@
         </div>
         <div class="header-actions">
             <button class="btn-header" onclick="history.back()">Back</button>
-            <a href="{{ url_for('profile') }}" class="profile-icon">
-                <img src="{{ url_for('static', filename='images/' + ('male.png' if viewer_gender == 'male' else 'female.png')) }}" alt="My Profile">
-            </a>
+            <a href="{{ url_for('logout') }}" class="btn-header">Logout</a>
         </div>
     </header>
 
@@ -32,7 +31,7 @@
         </div>
 
         <div class="ranks-section">
-            <h2>Their Rankings</h2>
+            <h2>Your Rankings</h2>
             <div class="stats-grid">
                 {% for item in profile_data %}
                 <div class="stat-card">
@@ -50,7 +49,11 @@
                         </div>
                     {% else %}
                         <div class="rank-locked">
-                            <p class="unlock-text">Rank is not yet unlocked.</p>
+                            <p class="unlock-text">Vote to unlock your rank</p>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: {{ (item['votes'] / MAX_VOTES) * 100 }}%;"></div>
+                            </div>
+                            <p class="progress-label">{{ item['votes'] }} / {{ MAX_VOTES }} Votes</p>
                         </div>
                     {% endif %}
                 </div>
@@ -58,5 +61,55 @@
             </div>
         </div>
     </main>
+
+{% else %}
+    <header class="navbar">
+        <div class="logo-container">
+            <a href="{{ url_for('dashboard') }}" class="logo-link">
+                <span class="logo-text">The Social Sort</span>
+            </a>
+        </div>
+        <div class="header-actions">
+             <a href="{{ url_for('user_profile', username=session['username']) }}" class="btn-header">My Profile</a>
+            <a href="{{ url_for('logout') }}" class="btn-header">Logout</a>
+        </div>
+    </header>
+
+    <main class="profile-container">
+        <div class="profile-header">
+            <img class="profile-pic" src="{{ url_for('static', filename='images/' + ('male.png' if user.gender == 'male' else 'female.png')) }}" alt="Profile Picture">
+            <h1 class="profile-name">{{ user['full_name'] or user['username'] }}</h1>
+            <p class="profile-bio">{{ user['bio'] }}</p>
+        </div>
+
+        <div class="ranks-section">
+            <h2>{{ user['username'] }}'s Rankings</h2>
+            <div class="stats-grid">
+                {% for item in profile_data %}
+                <div class="stat-card">
+                    <h3 class="category-title">{{ item['category'] }}</h3>
+                    {% if item['rank'] is not none %}
+                        <div class="rank-unlocked">
+                            <div class="stat-item">
+                                <span class="stat-label">Rank</span>
+                                <span class="stat-value">#{{ item['rank'] }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Rating</span>
+                                <span class="stat-value">{{ item['rating'] }}</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="rank-locked">
+                            <p class="unlock-text">Not yet ranked in this category.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+{% endif %}
 </body>
 </html>

@@ -419,18 +419,22 @@ def admin_dashboard():
     for cat in categories:
         cat_id = cat['id']
         cur.execute("""
-            SELECT u.id, u.username, u.full_name,
-                   COALESCE(er.rating, 1200) AS rating,
-                   (SELECT COUNT(*) 
-                    FROM votes v 
-                    WHERE (v.winner_id = u.id OR v.loser_id = u.id) 
-                      AND v.category_id = ?) AS votes
-            FROM users u
-            LEFT JOIN elo_ratings er ON er.user_id = u.id AND er.category_id = ?
-            ORDER BY rating DESC
-        """, (cat_id, cat_id))
-        leaderboard = cur.fetchall()
-        leaderboards[cat['name']] = [dict(row) for row in leaderboard] # Convert to dict list
+      SELECT u.id, u.username, u.full_name,
+            COALESCE(MAX(er.rating), 1200) AS rating,
+            (SELECT COUNT(*) FROM votes v WHERE v.winner_id = u.id AND v.category_id = ?) AS winning_votes,
+            (SELECT COUNT(*) FROM votes v WHERE v.loser_id = u.id AND v.category_id = ?) AS losing_votes
+    FROM users u
+    LEFT JOIN elo_ratings er ON er.user_id = u.id AND er.category_id = ?
+    GROUP BY u.id, u.username, u.full_name
+    ORDER BY rating DESC
+        """, (cat_id, cat_id, cat_id))
+        leaderboard_rows = cur.fetchall()
+        ranked_leaderboard = []
+        for i, row in enumerate(leaderboard_rows, 1): # Start enumeration from 1 for the rank
+            row_dict = dict(row)
+            row_dict['rank'] = i  # Add the rank to the dictionary
+            ranked_leaderboard.append(row_dict)
+        leaderboards[cat['name']] = ranked_leaderboard
 
     # NEW: Fetch colleges and their classes
     cur.execute("SELECT id, name FROM colleges ORDER BY name")
@@ -734,7 +738,12 @@ def user_profile(username):
     user = cur.fetchone()
 
     if not user:
+        cur.close()
+        conn.close()
         return "User not found", 404
+
+    # Determine if the logged-in user is the owner of this profile
+    is_owner = 'username' in session and session['username'] == username
 
     cur.execute("SELECT gender FROM users WHERE id=?", (session['user_id'],))
     viewer = cur.fetchone()
@@ -744,38 +753,66 @@ def user_profile(username):
     categories = cur.fetchall()
 
     profile_data = []
+    # Loop through each category to build the user's profile data
     for cat in categories:
-        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
-        votes_count = cur.fetchone()['cnt']
+        # Calculate how many votes the profile owner has CAST in this category.
+        # This is used for both the progress bar and for unlocking the rank.
+        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ? AND category_id = ?", 
+                    (user['id'], cat['id']))
+        votes_cast_count = cur.fetchone()['cnt']
 
-        if votes_count >= MAX_VOTES:
+        # Check if the rank should be public based on the number of votes cast.
+        if votes_cast_count >= MAX_VOTES:
+            # --- RANK IS UNLOCKED ---
+            # Get the user's rating
             cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
             rating_row = cur.fetchone()
             rating = rating_row['rating'] if rating_row else 1200
 
+            # Fetch all unique users in the category, sorted by rating, to determine rank
+            # FIX: Added GROUP BY to prevent duplicates from causing incorrect ranks
             cur.execute("""
-                SELECT COUNT(*)+1 as rank
-                FROM elo_ratings
-                WHERE category_id=? AND rating > ?
-            """, (cat['id'], rating))
-            rank = cur.fetchone()['rank']
+                SELECT user_id FROM elo_ratings
+                WHERE category_id = ?
+                GROUP BY user_id
+                ORDER BY MAX(rating) DESC
+            """, (cat['id'],))
+            all_users_sorted = cur.fetchall()
 
+            # Find the rank of the current user by their position in the sorted list
+            rank = "N/A"  # Default value
+            for i, sorted_user in enumerate(all_users_sorted, 1):
+                if sorted_user['user_id'] == user['id']:
+                    rank = i
+                    break
+            
             profile_data.append({
                 'category': cat['name'],
                 'rating': round(rating, 1),
-                'rank': rank
+                'rank': rank,
+                'votes': votes_cast_count
             })
         else:
+            # --- RANK IS LOCKED ---
+            # Show progress based on votes cast
             profile_data.append({
                 'category': cat['name'],
                 'rating': None,
-                'rank': None
+                'rank': None,
+                'votes': votes_cast_count
             })
 
+    # FIX: The database connection must be closed here, AFTER the loop is finished.
     cur.close()
     conn.close()
 
-    return render_template('user_profile.html', user=user, profile_data=profile_data, viewer_gender=viewer_gender)
+    # FIX: The template should be rendered here, AFTER all data has been processed.
+    return render_template('user_profile.html', 
+                           user=user, 
+                           profile_data=profile_data, 
+                           viewer_gender=viewer_gender,
+                           is_owner=is_owner,
+                           MAX_VOTES=MAX_VOTES)
 
 @app.route('/complete_profile', methods=['GET', 'POST'])
 def complete_profile():
@@ -850,57 +887,6 @@ def select_gender():
 
     return render_template('select_gender.html')
 
-@app.route('/profile')
-def profile():
-    if 'username' not in session:
-        return redirect(url_for('landing'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("SELECT id, username, full_name, bio, gender FROM users WHERE id=?", (session['user_id'],))
-    user = cur.fetchone()
-
-    cur.execute("SELECT id, name FROM categories")
-    categories = cur.fetchall()
-
-    profile_data = []
-    for cat in categories:
-        cur.execute("SELECT COUNT(*) as cnt FROM votes WHERE voter_id=? AND category_id=?", (user['id'], cat['id']))
-        votes_count = cur.fetchone()['cnt']
-
-        if votes_count >= MAX_VOTES:
-            cur.execute("SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?", (user['id'], cat['id']))
-            rating_row = cur.fetchone()
-            rating = rating_row['rating'] if rating_row else 1200
-
-            cur.execute("""
-                SELECT COUNT(*)+1 as rank
-                FROM elo_ratings
-                WHERE category_id=? 
-                AND rating > (SELECT rating FROM elo_ratings WHERE user_id=? AND category_id=?)
-            """, (cat['id'], user['id'], cat['id']))
-            rank = cur.fetchone()['rank']
-
-            profile_data.append({
-                'category': cat['name'],
-                'votes': votes_count,
-                'rating': round(rating, 1),
-                'rank': rank
-            })
-        else:
-            profile_data.append({
-                'category': cat['name'],
-                'votes': votes_count,
-                'rating': None,
-                'rank': None
-            })
-
-    cur.close()
-    conn.close()
-
-    return render_template('profile.html', user=user, profile_data=profile_data, MAX_VOTES=MAX_VOTES)
-
 @app.route('/category')
 def category():
     if 'username' not in session:
@@ -930,9 +916,20 @@ def category_page(cat_id):
     cur = conn.cursor()
     
     user_id = session['user_id']
-    cur.execute("SELECT gender FROM users WHERE id = ?", (user_id,))
+    
+    # NEW: Fetch the current user's gender and class_id
+    cur.execute("SELECT gender, class_id FROM users WHERE id = ?", (user_id,))
     user = cur.fetchone()
-    user_gender = user['gender'] if user else 'male'
+    
+    # NEW: Check if the user has a class assigned. If not, they can't vote.
+    if not user or not user['class_id']:
+        cur.close()
+        conn.close()
+        # This could be a redirect to the complete_profile page as well
+        return "You must complete your profile and select a class to vote.", 403
+
+    user_gender = user['gender']
+    user_class_id = user['class_id']
 
     cur.execute("SELECT id, name FROM categories WHERE id = ?", (cat_id,))
     category = cur.fetchone()
@@ -956,21 +953,25 @@ def category_page(cat_id):
         sorted_pair = tuple(sorted((pair['winner_id'], pair['loser_id'])))
         voted_pairs.add(sorted_pair)
 
+    # MODIFIED: The SQL query now filters for users in the same class (user_class_id)
     cur.execute("""
-        SELECT u.id, u.username, u.full_name, u.gender, e.rating
+        SELECT DISTINCT u.id, u.username, u.full_name, u.gender, e.rating
         FROM users u
         JOIN elo_ratings e ON u.id = e.user_id
-        WHERE e.category_id = ? AND u.id != ?
+        WHERE e.category_id = ? AND u.id != ? AND u.class_id = ?
         ORDER BY RANDOM()
-        LIMIT 20 
-    """, (cat_id, user_id))
+    """, (cat_id, user_id, user_class_id))
     
     potential_candidates = cur.fetchall()
     cur.close()
     conn.close()
 
+    # NEW: Check if there are enough users in the class to form a pair for voting.
     if len(potential_candidates) < 2:
-        return "Not enough rated users in this category to vote.", 400
+        return render_template('all_voted.html', 
+                               category=category, 
+                               gender=user_gender,
+                               message="There are not enough other users in your class to vote.")
 
     candidates = None
     for p1, p2 in combinations(potential_candidates, 2):
@@ -982,7 +983,8 @@ def category_page(cat_id):
     if not candidates:
         return render_template('all_voted.html', 
                                category=category, 
-                               gender=user_gender)
+                               gender=user_gender,
+                               message="You have voted on all possible pairs in your class for this category.")
 
     return render_template('vote.html', 
                            category=category, 

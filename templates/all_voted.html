@@ -17,7 +17,7 @@
             <span class="logo-text">The Social Sort</span>
         </div>
         <div class="profile-icon">
-            <a href="/profile">
+             <a href="{{ url_for('user_profile', username=session['username']) }}">
                 <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
             </a>
         </div>

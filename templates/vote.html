@@ -16,7 +16,7 @@
             </a>
         </div>
         <div class="profile-icon">
-            <a href="/profile">
+             <a href="{{ url_for('user_profile', username=session['username']) }}">
                 <img src="{{ url_for('static', filename='images/' + ('male.png' if gender == 'male' else 'female.png')) }}" alt="Profile">
             </a>
         </div>
@@ -50,7 +50,7 @@
         <div class="button-wrapper">
             <button class="btn-next" id="next-btn">Next</button>
             <div class="final-actions" id="final-actions">
-                <button class="btn-rank" id="rank-btn" onclick="window.location.href='{{ url_for('profile') }}'">Check Rank</button>
+               <button class="btn-rank" id="rank-btn" onclick="window.location.href='{{ url_for('user_profile', username=session['username']) }}'">Check Rank</button>
                 <button class="btn-categories" id="categories-btn" onclick="window.location.href='{{ url_for('category') }}'">Categories</button>
             </div>
         </div>
